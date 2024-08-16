@@ -146,19 +146,19 @@ if (window.location.pathname.includes('index.html')) {
             // Remove "verify" from display name
             const cleanDisplayName = post.displayName.replace(/verify/i, '').trim();
             
-            postDiv.innerHTML = `
+            postDiv.innerHTML = 
                 <div class="author">
                     ${cleanDisplayName} ${isVerified ? '<i class="fa fa-check-circle verified"></i> Verified' : ''}
                 </div>
                 <div class="content">${post.content}</div>
                 <div class="actions">
                     <button class="share-btn" onclick="sharePost('${doc.id}')"><i class="fa fa-share"></i> Share</button>
-                    ${auth.currentUser && auth.currentUser.uid === post.uid ? `
+                    ${auth.currentUser && auth.currentUser.uid === post.uid ? 
                         <button class="edit-btn" onclick="editPost('${doc.id}', '${post.content}')"><i class="fa fa-edit"></i> Edit</button>
                         <button class="delete-btn" onclick="deletePost('${doc.id}')"><i class="fa fa-trash"></i> Delete</button>
-                    ` : ''}
+                     : ''}
                 </div>
-            `;
+            ;
             postList.appendChild(postDiv);
         });
     } catch (error) {
@@ -169,22 +169,19 @@ if (window.location.pathname.includes('index.html')) {
 
 
     window.editPost = async function(postId, currentContent) {
-    const newContent = prompt('Edit your post:', currentContent);
-    if (newContent !== null && newContent.trim() !== '') {
-        try {
-            const postRef = doc(db, 'posts', postId);
-            await updateDoc(postRef, {
-                content: newContent
-            });
-            displayPosts(); // Refresh posts after update
-        } catch (error) {
-            console.error('Error updating post: ', error);
+        const newContent = prompt('Edit your post:', currentContent);
+        if (newContent !== null && newContent.trim() !== '') {
+            try {
+                const postRef = doc(db, 'posts', postId);
+                await updateDoc(postRef, {
+                    content: newContent
+                });
+                displayPosts();
+            } catch (error) {
+                console.error('Error updating post: ', error);
+            }
         }
-    } else {
-        alert('Post content cannot be empty.');
-    }
-};
-
+    };
 
     window.deletePost = async function(postId) {
         if (confirm('Are you sure you want to delete this post?')) {
@@ -197,19 +194,17 @@ if (window.location.pathname.includes('index.html')) {
         }
     };
 
-    // Function to handle sharing
-function sharePost(postId) {
-    const postUrl = `${window.location.origin}/posts/${postId}`;
-    console.log('Attempting to share URL:', postUrl); // Debugging output
+    function sharePost(postId) {
+        const postUrl = ${window.location.origin}/posts/${postId};
+        navigator.clipboard.writeText(postUrl).then(() => {
+            alert('Post URL copied to clipboard!');
+        }).catch(err => {
+            console.error('Error copying URL: ', err);
+        });
+    }
 
-    navigator.clipboard.writeText(postUrl).then(() => {
-        alert('Post URL copied to clipboard!');
-    }).catch(err => {
-        console.error('Error copying URL: ', err);
-        alert('Failed to copy URL. Please try again.');
-    });
+    displayPosts();
 }
-
 
 // Settings page logic
 if (window.location.pathname.includes('settings.html')) {
@@ -238,4 +233,3 @@ if (window.location.pathname.includes('settings.html')) {
             savedFontSize === 'medium' ? '16px' : '18px';
         fontSizeSelect.value = savedFontSize;
     });
-}
