@@ -3,6 +3,7 @@ import { getFirestore, collection, addDoc, getDocs, orderBy, query, serverTimest
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-auth.js";
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-analytics.js";
 
+// Firebase configuration
 const firebaseConfig = {
     apiKey: "AIzaSyDLKPOqok8VS3gR4TAEGCEH4IEJL8kKpvw",
     authDomain: "ind-edu-f63b0.firebaseapp.com",
@@ -13,11 +14,13 @@ const firebaseConfig = {
     measurementId: "G-EPQM943Y2V"
 };
 
+// Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const analytics = getAnalytics(app);
 const db = getFirestore(app);
 const auth = getAuth(app);
 
+// Profile page logic
 if (window.location.pathname.includes('profile.html')) {
     const authSection = document.getElementById('auth-section');
     const userInfo = document.getElementById('user-info');
@@ -70,6 +73,7 @@ if (window.location.pathname.includes('profile.html')) {
     });
 }
 
+// Main index page logic
 if (window.location.pathname.includes('index.html')) {
     const postForm = document.getElementById('post-form');
     const signOutButton = document.getElementById('sign-out');
@@ -149,18 +153,9 @@ if (window.location.pathname.includes('index.html')) {
         }
     }
 
-    function sharePost(postId) {
-        const postUrl = `${window.location.origin}/posts/${postId}`;
-        navigator.clipboard.writeText(postUrl).then(() => {
-            alert('Post URL copied to clipboard!');
-        }).catch(err => {
-            console.error('Error copying URL: ', err);
-        });
-    }
-
     window.editPost = async function(postId, currentContent) {
         const newContent = prompt('Edit your post:', currentContent);
-        if (newContent !== null) {
+        if (newContent !== null && newContent.trim() !== '') {
             try {
                 const postRef = doc(db, 'posts', postId);
                 await updateDoc(postRef, {
@@ -184,9 +179,19 @@ if (window.location.pathname.includes('index.html')) {
         }
     };
 
+    function sharePost(postId) {
+        const postUrl = `${window.location.origin}/posts/${postId}`;
+        navigator.clipboard.writeText(postUrl).then(() => {
+            alert('Post URL copied to clipboard!');
+        }).catch(err => {
+            console.error('Error copying URL: ', err);
+        });
+    }
+
     displayPosts();
 }
 
+// Settings page logic
 if (window.location.pathname.includes('settings.html')) {
     const themeSelect = document.getElementById('theme-select');
     const fontSizeSelect = document.getElementById('font-size');
