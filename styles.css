@@ -159,3 +159,71 @@ textarea {
 .post .fa {
     margin-right: 0.5rem;
 }
+#auth-section {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    margin-top: 2rem;
+}
+
+.auth-button {
+    font-size: 1.2rem;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 1rem 2rem;
+    cursor: pointer;
+    transition: background-color 0.3s, box-shadow 0.3s;
+    display: inline-block;
+    text-align: center;
+    text-decoration: none;
+    margin: 0.5rem; /* Space between buttons */
+    width: 200px; /* Fixed width */
+}
+
+#sign-in {
+    background-color: #007bff; /* Blue color */
+  margin-top:5px;
+    padding:15px;
+
+}
+
+#sign-in:hover {
+    background-color: #0056b3; /* Darker blue for hover effect */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+#sign-up {
+    background-color: #28a745; /* Green color */
+  margin-top:5px;
+    padding:15px;
+
+}
+
+#sign-up:hover {
+    background-color: #218838; /* Darker green for hover effect */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.auth-button:focus {
+    outline: none;
+}
+
+.auth-button:active {
+    background-color: #004085; /* Slightly darker color when clicked */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Additional styling */
+h1 {
+    margin: 0;
+    font-size: 2rem;
+}
+#sign-out
+{
+  margin-top:5px;
+    padding:15px;
+background-color:white;
+  
+}
