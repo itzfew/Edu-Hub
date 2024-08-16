@@ -2,21 +2,30 @@ body {
     font-family: Arial, sans-serif;
     margin: 0;
     padding: 0;
-    background-color: #f4f4f4;
+    background-color: #f0f2f5;
+    color: #333;
 }
 
 header {
-    background-color: #007BFF;
+    background-color: #4267B2;
     color: #fff;
     padding: 1rem;
     text-align: center;
     display: flex;
-    justify-content: space-between;
     align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid #ddd;
+}
+
+header #logo {
+    width: 50px;
+    height: 50px;
+    vertical-align: middle;
 }
 
 header h1 {
     margin: 0;
+    font-size: 1.5rem;
 }
 
 nav {
@@ -27,7 +36,7 @@ nav {
 
 nav a, nav button {
     color: #fff;
-    background-color: #0056b3;
+    background-color: #1877F2;
     padding: 0.5rem 1rem;
     border: none;
     cursor: pointer;
@@ -36,27 +45,55 @@ nav a, nav button {
 }
 
 nav a:hover, nav button:hover {
-    background-color: #003d7a;
+    background-color: #165eab;
 }
 
 main {
     padding: 1rem;
+    max-width: 900px;
+    margin: 0 auto;
 }
 
-#auth-section, #post-form, #user-info, #settings-form {
+#post-form {
+    background: #fff;
+    padding: 1rem;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
     margin-bottom: 2rem;
 }
 
-input, textarea, select {
+#post-form h2 {
+    margin-top: 0;
+}
+
+input, textarea {
     width: 100%;
     padding: 0.5rem;
     margin-bottom: 1rem;
-    border: 1px solid #ccc;
+    border: 1px solid #ddd;
     border-radius: 4px;
 }
 
 textarea {
     height: 100px;
+}
+
+#submit-post {
+    background-color: #1877F2;
+    color: #fff;
+    border: none;
+    cursor: pointer;
+    padding: 0.5rem;
+    border-radius: 4px;
+    font-size: 1rem;
+}
+
+#submit-post:hover {
+    background-color: #165eab;
+}
+
+#posts {
+    margin-top: 2rem;
 }
 
 #post-list {
@@ -68,39 +105,57 @@ textarea {
 .post {
     background-color: #fff;
     padding: 1rem;
-    border: 2px solid #007BFF;
     border-radius: 8px;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    border: 1px solid #ddd;
     position: relative;
 }
 
 .post .author {
     font-weight: bold;
-    color: #007BFF;
+    color: #1877F2;
+    margin-bottom: 0.5rem;
 }
 
 .post .content {
-    margin-top: 0.5rem;
+    line-height: 1.5;
+    margin-bottom: 1rem;
 }
 
-.post .share-btn {
-    background-color: #28a745;
-    color: #fff;
+.post .actions {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.post .share-btn, .post .edit-btn, .post .delete-btn {
+    background-color: #ddd;
+    color: #333;
     border: none;
     cursor: pointer;
     padding: 0.5rem;
     border-radius: 4px;
-    position: absolute;
-    bottom: 1rem;
-    right: 1rem;
-}
-
-.post .share-btn:hover {
-    background-color: #218838;
-}
-
-#settings-form {
+    font-size: 0.9rem;
     display: flex;
-    flex-direction: column;
-    gap: 1rem;
+    align-items: center;
+}
+
+.post .share-btn {
+    background-color: #42b72a;
+}
+
+.post .edit-btn {
+    background-color: #ffcc00;
+}
+
+.post .delete-btn {
+    background-color: #f44336;
+}
+
+.post .share-btn:hover, .post .edit-btn:hover, .post .delete-btn:hover {
+    opacity: 0.8;
+}
+
+.post .fa {
+    margin-right: 0.5rem;
 }
