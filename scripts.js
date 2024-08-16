@@ -169,19 +169,22 @@ if (window.location.pathname.includes('index.html')) {
 
 
     window.editPost = async function(postId, currentContent) {
-        const newContent = prompt('Edit your post:', currentContent);
-        if (newContent !== null && newContent.trim() !== '') {
-            try {
-                const postRef = doc(db, 'posts', postId);
-                await updateDoc(postRef, {
-                    content: newContent
-                });
-                displayPosts();
-            } catch (error) {
-                console.error('Error updating post: ', error);
-            }
+    const newContent = prompt('Edit your post:', currentContent);
+    if (newContent !== null && newContent.trim() !== '') {
+        try {
+            const postRef = doc(db, 'posts', postId);
+            await updateDoc(postRef, {
+                content: newContent
+            });
+            displayPosts(); // Refresh posts after update
+        } catch (error) {
+            console.error('Error updating post: ', error);
         }
-    };
+    } else {
+        alert('Post content cannot be empty.');
+    }
+};
+
 
     window.deletePost = async function(postId) {
         if (confirm('Are you sure you want to delete this post?')) {
