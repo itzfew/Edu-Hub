@@ -42,6 +42,8 @@ if (window.location.pathname.includes('profile.html')) {
         const password = document.getElementById('password').value;
         try {
             await signInWithEmailAndPassword(auth, email, password);
+            alert('Welcome back!');
+            window.location.href = 'index.html';
         } catch (error) {
             console.error('Error signing in: ', error);
         }
@@ -52,6 +54,8 @@ if (window.location.pathname.includes('profile.html')) {
         const password = document.getElementById('password').value;
         try {
             await createUserWithEmailAndPassword(auth, email, password);
+            alert('Welcome to Ind Edu!');
+            window.location.href = 'profile.html';
         } catch (error) {
             console.error('Error signing up: ', error);
         }
@@ -107,6 +111,7 @@ if (window.location.pathname.includes('index.html')) {
                 document.getElementById('post-content').value = '';
                 document.getElementById('display-name').value = '';
                 displayPosts();
+                alert('Post added successfully!');
             } catch (error) {
                 console.error('Error adding post: ', error);
             }
