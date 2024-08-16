@@ -1,7 +1,7 @@
 // Import the functions you need from the SDKs
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
 import { getFirestore, collection, addDoc, getDocs, orderBy, query, serverTimestamp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore.js";
-import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-auth.js";
+import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-auth.js";
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-analytics.js";
 
 // Your web app's Firebase configuration
@@ -20,6 +20,19 @@ const app = initializeApp(firebaseConfig);
 const analytics = getAnalytics(app);
 const db = getFirestore(app);
 const auth = getAuth(app);
+
+// Display the post form only when the user is authenticated
+onAuthStateChanged(auth, user => {
+    if (user) {
+        document.getElementById('auth-section').style.display = 'none';
+        document.getElementById('post-form').style.display = 'block';
+        document.getElementById('sign-out').style.display = 'inline';
+    } else {
+        document.getElementById('auth-section').style.display = 'block';
+        document.getElementById('post-form').style.display = 'none';
+        document.getElementById('sign-out').style.display = 'none';
+    }
+});
 
 // Sign In
 document.getElementById('sign-in').addEventListener('click', async () => {
@@ -55,8 +68,9 @@ document.getElementById('sign-out').addEventListener('click', async () => {
 // Add a Post
 document.getElementById('submit-post').addEventListener('click', async () => {
     const postContent = document.getElementById('post-content').value;
-    if (postContent.trim() === '') {
-        alert('Post content cannot be empty.');
+    const displayName = document.getElementById('display-name').value;
+    if (postContent.trim() === '' || displayName.trim() === '') {
+        alert('Post content and display name cannot be empty.');
         return;
     }
 
@@ -65,9 +79,11 @@ document.getElementById('submit-post').addEventListener('click', async () => {
             await addDoc(collection(db, 'posts'), {
                 content: postContent,
                 timestamp: serverTimestamp(),
-                uid: auth.currentUser.uid
+                uid: auth.currentUser.uid,
+                displayName: displayName
             });
             document.getElementById('post-content').value = '';
+            document.getElementById('display-name').value = '';
             displayPosts(); // Refresh the post list
         } catch (error) {
             console.error('Error adding post: ', error);
@@ -89,7 +105,10 @@ async function displayPosts() {
             const post = doc.data();
             const postDiv = document.createElement('div');
             postDiv.classList.add('post');
-            postDiv.textContent = post.content;
+            postDiv.innerHTML = `
+                <div class="author">${post.displayName}</div>
+                <div class="content">${post.content}</div>
+            `;
             postList.appendChild(postDiv);
         });
     } catch (error) {
