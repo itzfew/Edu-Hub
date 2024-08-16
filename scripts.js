@@ -159,3 +159,20 @@ if (window.location.pathname.includes('index.html')) {
 
     displayPosts(); // Load posts on page load
 }
+
+// Settings page
+if (window.location.pathname.includes('settings.html')) {
+    const themeSelect = document.getElementById('theme-select');
+
+    themeSelect.addEventListener('change', () => {
+        const theme = themeSelect.value;
+        document.body.className = theme;
+        localStorage.setItem('theme', theme);
+    });
+
+    window.addEventListener('load', () => {
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        document.body.className = savedTheme;
+        themeSelect.value = savedTheme;
+    });
+}
