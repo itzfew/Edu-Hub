@@ -197,17 +197,19 @@ if (window.location.pathname.includes('index.html')) {
         }
     };
 
-    function sharePost(postId) {
-        const postUrl = `${window.location.origin}/posts/${postId}`;
-        navigator.clipboard.writeText(postUrl).then(() => {
-            alert('Post URL copied to clipboard!');
-        }).catch(err => {
-            console.error('Error copying URL: ', err);
-        });
-    }
+    // Function to handle sharing
+function sharePost(postId) {
+    const postUrl = `${window.location.origin}/posts/${postId}`;
+    console.log('Attempting to share URL:', postUrl); // Debugging output
 
-    displayPosts();
+    navigator.clipboard.writeText(postUrl).then(() => {
+        alert('Post URL copied to clipboard!');
+    }).catch(err => {
+        console.error('Error copying URL: ', err);
+        alert('Failed to copy URL. Please try again.');
+    });
 }
+
 
 // Settings page logic
 if (window.location.pathname.includes('settings.html')) {
