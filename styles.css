@@ -11,20 +11,31 @@ header {
     padding: 1rem;
     text-align: center;
     display: flex;
-    justify-content: center;
+    justify-content: space-between;
+    align-items: center;
+}
+
+header h1 {
+    margin: 0;
+}
+
+nav {
+    display: flex;
     align-items: center;
     gap: 1rem;
 }
 
-button {
-    padding: 0.5rem 1rem;
-    background-color: #007BFF;
+nav a, nav button {
     color: #fff;
+    background-color: #007BFF;
+    padding: 0.5rem 1rem;
     border: none;
     cursor: pointer;
+    text-decoration: none;
+    border-radius: 4px;
 }
 
-button:hover {
+nav a:hover, nav button:hover {
     background-color: #0056b3;
 }
 
@@ -32,7 +43,7 @@ main {
     padding: 1rem;
 }
 
-#auth-section, #post-form {
+#auth-section, #post-form, #user-info {
     margin-bottom: 2rem;
 }
 
@@ -69,4 +80,17 @@ textarea {
 
 .post .content {
     margin-top: 0.5rem;
+}
+
+.post .share-btn {
+    background-color: #28a745;
+    color: #fff;
+    border: none;
+    cursor: pointer;
+    padding: 0.5rem;
+    border-radius: 4px;
+}
+
+.post .share-btn:hover {
+    background-color: #218838;
 }
