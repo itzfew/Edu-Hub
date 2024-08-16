@@ -146,19 +146,20 @@ if (window.location.pathname.includes('index.html')) {
             // Remove "verify" from display name
             const cleanDisplayName = post.displayName.replace(/verify/i, '').trim();
             
-            postDiv.innerHTML = 
-                <div class="author">
-                    ${cleanDisplayName} ${isVerified ? '<i class="fa fa-check-circle verified"></i> Verified' : ''}
-                </div>
-                <div class="content">${post.content}</div>
-                <div class="actions">
-                    <button class="share-btn" onclick="sharePost('${doc.id}')"><i class="fa fa-share"></i> Share</button>
-                    ${auth.currentUser && auth.currentUser.uid === post.uid ? 
-                        <button class="edit-btn" onclick="editPost('${doc.id}', '${post.content}')"><i class="fa fa-edit"></i> Edit</button>
-                        <button class="delete-btn" onclick="deletePost('${doc.id}')"><i class="fa fa-trash"></i> Delete</button>
-                     : ''}
-                </div>
-            ;
+            postDiv.innerHTML = `
+    <div class="author">
+        ${cleanDisplayName} ${isVerified ? '<i class="fa fa-check-circle verified"></i> Verified' : ''}
+    </div>
+    <div class="content">${post.content}</div>
+    <div class="actions">
+        <button class="share-btn" onclick="sharePost('${doc.id}')"><i class="fa fa-share"></i> Share</button>
+        ${auth.currentUser && auth.currentUser.uid === post.uid ? 
+            `<button class="edit-btn" onclick="editPost('${doc.id}', '${post.content}')"><i class="fa fa-edit"></i> Edit</button>
+            <button class="delete-btn" onclick="deletePost('${doc.id}')"><i class="fa fa-trash"></i> Delete</button>`
+         : ''}
+    </div>
+`;
+
             postList.appendChild(postDiv);
         });
     } catch (error) {
@@ -195,16 +196,14 @@ if (window.location.pathname.includes('index.html')) {
     };
 
     function sharePost(postId) {
-        const postUrl = ${window.location.origin}/posts/${postId};
-        navigator.clipboard.writeText(postUrl).then(() => {
-            alert('Post URL copied to clipboard!');
-        }).catch(err => {
-            console.error('Error copying URL: ', err);
-        });
-    }
-
-    displayPosts();
+    const postUrl = `${window.location.origin}/posts/${postId}`;
+    navigator.clipboard.writeText(postUrl).then(() => {
+        alert('Post URL copied to clipboard!');
+    }).catch(err => {
+        console.error('Error copying URL: ', err);
+    });
 }
+
 
 // Settings page logic
 if (window.location.pathname.includes('settings.html')) {
