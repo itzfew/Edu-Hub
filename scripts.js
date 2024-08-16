@@ -1,27 +1,23 @@
-// Import the functions you need from the SDKs
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
-import { getFirestore, collection, addDoc, getDocs, orderBy, query, serverTimestamp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore.js";
+import { getFirestore, collection, addDoc, getDocs, orderBy, query, serverTimestamp, doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore.js";
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-auth.js";
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-analytics.js";
 
-// Your web app's Firebase configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyDLKPOqok8VS3gR4TAEGCEH4IEJL8kKpvw",
-  authDomain: "ind-edu-f63b0.firebaseapp.com",
-  projectId: "ind-edu-f63b0",
-  storageBucket: "ind-edu-f63b0.appspot.com",
-  messagingSenderId: "405906160405",
-  appId: "1:405906160405:web:7040d4f0118fa01d13071c",
-  measurementId: "G-EPQM943Y2V"
+    apiKey: "AIzaSyDLKPOqok8VS3gR4TAEGCEH4IEJL8kKpvw",
+    authDomain: "ind-edu-f63b0.firebaseapp.com",
+    projectId: "ind-edu-f63b0",
+    storageBucket: "ind-edu-f63b0.appspot.com",
+    messagingSenderId: "405906160405",
+    appId: "1:405906160405:web:7040d4f0118fa01d13071c",
+    measurementId: "G-EPQM943Y2V"
 };
 
-// Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const analytics = getAnalytics(app);
 const db = getFirestore(app);
 const auth = getAuth(app);
 
-// Profile page
 if (window.location.pathname.includes('profile.html')) {
     const authSection = document.getElementById('auth-section');
     const userInfo = document.getElementById('user-info');
@@ -32,7 +28,7 @@ if (window.location.pathname.includes('profile.html')) {
     signOutButton.addEventListener('click', async () => {
         try {
             await signOut(auth);
-            window.location.href = 'index.html'; // Redirect to main page
+            window.location.href = 'index.html';
         } catch (error) {
             console.error('Error signing out: ', error);
         }
@@ -70,11 +66,10 @@ if (window.location.pathname.includes('profile.html')) {
     });
 
     viewPostsButton.addEventListener('click', () => {
-        window.location.href = 'index.html'; // Redirect to main page
+        window.location.href = 'index.html';
     });
 }
 
-// Main page
 if (window.location.pathname.includes('index.html')) {
     const postForm = document.getElementById('post-form');
     const signOutButton = document.getElementById('sign-out');
@@ -107,7 +102,7 @@ if (window.location.pathname.includes('index.html')) {
                 });
                 document.getElementById('post-content').value = '';
                 document.getElementById('display-name').value = '';
-                displayPosts(); // Refresh the post list
+                displayPosts();
             } catch (error) {
                 console.error('Error adding post: ', error);
             }
@@ -119,7 +114,7 @@ if (window.location.pathname.includes('index.html')) {
     document.getElementById('sign-out').addEventListener('click', async () => {
         try {
             await signOut(auth);
-            window.location.href = 'profile.html'; // Redirect to profile page
+            window.location.href = 'profile.html';
         } catch (error) {
             console.error('Error signing out: ', error);
         }
@@ -139,7 +134,13 @@ if (window.location.pathname.includes('index.html')) {
                 postDiv.innerHTML = `
                     <div class="author">${post.displayName}</div>
                     <div class="content">${post.content}</div>
-                    <button class="share-btn" onclick="sharePost('${doc.id}')">Share</button>
+                    <div class="actions">
+                        <button class="share-btn" onclick="sharePost('${doc.id}')"><i class="fa fa-share"></i> Share</button>
+                        ${auth.currentUser && auth.currentUser.uid === post.uid ? `
+                            <button class="edit-btn" onclick="editPost('${doc.id}', '${post.content}')"><i class="fa fa-edit"></i> Edit</button>
+                            <button class="delete-btn" onclick="deletePost('${doc.id}')"><i class="fa fa-trash"></i> Delete</button>
+                        ` : ''}
+                    </div>
                 `;
                 postList.appendChild(postDiv);
             });
@@ -157,12 +158,38 @@ if (window.location.pathname.includes('index.html')) {
         });
     }
 
-    displayPosts(); // Load posts on page load
+    window.editPost = async function(postId, currentContent) {
+        const newContent = prompt('Edit your post:', currentContent);
+        if (newContent !== null) {
+            try {
+                const postRef = doc(db, 'posts', postId);
+                await updateDoc(postRef, {
+                    content: newContent
+                });
+                displayPosts();
+            } catch (error) {
+                console.error('Error updating post: ', error);
+            }
+        }
+    };
+
+    window.deletePost = async function(postId) {
+        if (confirm('Are you sure you want to delete this post?')) {
+            try {
+                await deleteDoc(doc(db, 'posts', postId));
+                displayPosts();
+            } catch (error) {
+                console.error('Error deleting post: ', error);
+            }
+        }
+    };
+
+    displayPosts();
 }
 
-// Settings page
 if (window.location.pathname.includes('settings.html')) {
     const themeSelect = document.getElementById('theme-select');
+    const fontSizeSelect = document.getElementById('font-size');
 
     themeSelect.addEventListener('change', () => {
         const theme = themeSelect.value;
@@ -170,9 +197,20 @@ if (window.location.pathname.includes('settings.html')) {
         localStorage.setItem('theme', theme);
     });
 
+    fontSizeSelect.addEventListener('change', () => {
+        const fontSize = fontSizeSelect.value;
+        document.body.style.fontSize = fontSize === 'small' ? '14px' :
+            fontSize === 'medium' ? '16px' : '18px';
+        localStorage.setItem('fontSize', fontSize);
+    });
+
     window.addEventListener('load', () => {
         const savedTheme = localStorage.getItem('theme') || 'light';
+        const savedFontSize = localStorage.getItem('fontSize') || 'medium';
         document.body.className = savedTheme;
         themeSelect.value = savedTheme;
+        document.body.style.fontSize = savedFontSize === 'small' ? '14px' :
+            savedFontSize === 'medium' ? '16px' : '18px';
+        fontSizeSelect.value = savedFontSize;
     });
 }
