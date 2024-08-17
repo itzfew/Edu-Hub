@@ -78,6 +78,10 @@ textarea {
     height: 100px;
 }
 
+#keywords {
+    margin-bottom: 1rem;
+}
+
 #submit-post {
     background-color: #1877F2;
     color: #fff;
@@ -94,6 +98,14 @@ textarea {
 
 #posts {
     margin-top: 2rem;
+}
+
+#search-input {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    margin-bottom: 1rem;
 }
 
 #post-list {
@@ -117,8 +129,20 @@ textarea {
     margin-bottom: 0.5rem;
 }
 
+.post .date {
+    font-size: 0.9rem;
+    color: #666;
+    margin-bottom: 1rem;
+}
+
 .post .content {
     line-height: 1.5;
+    margin-bottom: 1rem;
+}
+
+.post .keywords {
+    font-size: 0.9rem;
+    color: #1877F2;
     margin-bottom: 1rem;
 }
 
@@ -128,7 +152,7 @@ textarea {
     gap: 1rem;
 }
 
-.post .share-btn, .post .edit-btn, .post .delete-btn {
+.post .edit-btn, .post .delete-btn {
     background-color: #ddd;
     color: #333;
     border: none;
@@ -140,10 +164,6 @@ textarea {
     align-items: center;
 }
 
-.post .share-btn {
-    background-color: #42b72a;
-}
-
 .post .edit-btn {
     background-color: #ffcc00;
 }
@@ -152,13 +172,14 @@ textarea {
     background-color: #f44336;
 }
 
-.post .share-btn:hover, .post .edit-btn:hover, .post .delete-btn:hover {
+.post .edit-btn:hover, .post .delete-btn:hover {
     opacity: 0.8;
 }
 
 .post .fa {
     margin-right: 0.5rem;
 }
+
 #auth-section {
     display: flex;
     flex-direction: column;
@@ -178,31 +199,29 @@ textarea {
     display: inline-block;
     text-align: center;
     text-decoration: none;
-    margin: 0.5rem; /* Space between buttons */
-    width: 200px; /* Fixed width */
+    margin: 0.5rem;
+    width: 200px;
 }
 
 #sign-in {
-    background-color: #007bff; /* Blue color */
-  margin-top:5px;
-    padding:15px;
-
+    background-color: #007bff;
+    margin-top: 5px;
+    padding: 15px;
 }
 
 #sign-in:hover {
-    background-color: #0056b3; /* Darker blue for hover effect */
+    background-color: #0056b3;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
 #sign-up {
-    background-color: #28a745; /* Green color */
-  margin-top:5px;
-    padding:15px;
-
+    background-color: #28a745;
+    margin-top: 5px;
+    padding: 15px;
 }
 
 #sign-up:hover {
-    background-color: #218838; /* Darker green for hover effect */
+    background-color: #218838;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
@@ -211,26 +230,28 @@ textarea {
 }
 
 .auth-button:active {
-    background-color: #004085; /* Slightly darker color when clicked */
+    background-color: #004085;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
-/* Additional styling */
-h1 {
-    margin: 0;
-    font-size: 2rem;
+#sign-out {
+    margin-top: 5px;
+    padding: 15px;
+    background-color: #f44336;
+    color: #fff;
 }
-#sign-out
-{
-  margin-top:5px;
-    padding:15px;
-background-color:brown;
-  
+
+#sign-out:hover {
+    background-color: #c62828;
 }
-#view-posts
-{
-  margin-top:5px;
-    padding:15px;
-background-color:white;
-  
+
+#view-posts {
+    margin-top: 5px;
+    padding: 15px;
+    background-color: #fff;
+    color: #333;
+}
+
+#view-posts:hover {
+    background-color: #e0e0e0;
 }
