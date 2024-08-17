@@ -81,6 +81,7 @@ if (window.location.pathname.includes('profile.html')) {
 if (window.location.pathname.includes('index.html')) {
     const postForm = document.getElementById('post-form');
     const signOutButton = document.getElementById('sign-out');
+    const searchInput = document.getElementById('search-input');
 
     onAuthStateChanged(auth, user => {
         if (user) {
@@ -95,6 +96,7 @@ if (window.location.pathname.includes('index.html')) {
     document.getElementById('submit-post').addEventListener('click', async () => {
         const postContent = document.getElementById('post-content').value;
         const displayName = document.getElementById('display-name').value;
+        const keywords = document.getElementById('keywords').value; // Add a field for keywords
         if (postContent.trim() === '' || displayName.trim() === '') {
             alert('Post content and display name cannot be empty.');
             return;
@@ -106,10 +108,12 @@ if (window.location.pathname.includes('index.html')) {
                     content: postContent,
                     timestamp: serverTimestamp(),
                     uid: auth.currentUser.uid,
-                    displayName: displayName
+                    displayName: displayName,
+                    keywords: keywords.split(',').map(keyword => keyword.trim()) // Store keywords as an array
                 });
                 document.getElementById('post-content').value = '';
                 document.getElementById('display-name').value = '';
+                document.getElementById('keywords').value = ''; // Clear keywords field
                 displayPosts();
                 alert('Post added successfully!');
             } catch (error) {
@@ -130,43 +134,48 @@ if (window.location.pathname.includes('index.html')) {
     });
 
     async function displayPosts() {
-    const postList = document.getElementById('post-list');
-    postList.innerHTML = '';
+        const postList = document.getElementById('post-list');
+        postList.innerHTML = '';
 
-    try {
-        const q = query(collection(db, 'posts'), orderBy('timestamp', 'desc'));
-        const querySnapshot = await getDocs(q);
-        querySnapshot.forEach(doc => {
-            const post = doc.data();
-            const postDiv = document.createElement('div');
-            postDiv.classList.add('post');
+        const searchTerm = searchInput.value.toLowerCase();
 
-            // Check if display name includes "verify"
-            const isVerified = post.displayName.toLowerCase().includes('verify');
-            // Remove "verify" from display name
-            const cleanDisplayName = post.displayName.replace(/verify/i, '').trim();
-            
-            postDiv.innerHTML = `
-                <div class="author">
-                    ${cleanDisplayName} ${isVerified ? '<i class="fa fa-check-circle verified"></i> Verified' : ''}
-                </div>
-                <div class="content">${post.content}</div>
-                <div class="actions">
-                    <button class="share-btn" onclick="sharePost('${doc.id}')"><i class="fa fa-share"></i> Share</button>
-                    ${auth.currentUser && auth.currentUser.uid === post.uid ? `
-                        <button class="edit-btn" onclick="editPost('${doc.id}', '${post.content}')"><i class="fa fa-edit"></i> Edit</button>
-                        <button class="delete-btn" onclick="deletePost('${doc.id}')"><i class="fa fa-trash"></i> Delete</button>
-                    ` : ''}
-                </div>
-            `;
-            postList.appendChild(postDiv);
-        });
-    } catch (error) {
-        console.error('Error getting posts: ', error);
+        try {
+            const q = query(collection(db, 'posts'), orderBy('timestamp', 'desc'));
+            const querySnapshot = await getDocs(q);
+            querySnapshot.forEach(doc => {
+                const post = doc.data();
+                const postDiv = document.createElement('div');
+                postDiv.classList.add('post');
+
+                // Check if display name includes "verify"
+                const isVerified = post.displayName.toLowerCase().includes('verify');
+                // Remove "verify" from display name
+                const cleanDisplayName = post.displayName.replace(/verify/i, '').trim();
+
+                // Check if any keyword matches the search term
+                const matchesSearch = post.keywords.some(keyword => keyword.toLowerCase().includes(searchTerm));
+
+                if (searchTerm === '' || matchesSearch) {
+                    postDiv.innerHTML = `
+                        <div class="author">
+                            ${cleanDisplayName} ${isVerified ? '<i class="fa fa-check-circle verified"></i> Verified' : ''}
+                        </div>
+                        <div class="content">${post.content}</div>
+                        <div class="date">${new Date(post.timestamp.toDate()).toLocaleString()}</div>
+                        <div class="actions">
+                            ${auth.currentUser && auth.currentUser.uid === post.uid ? `
+                                <button class="edit-btn" onclick="editPost('${doc.id}', '${post.content}')"><i class="fa fa-edit"></i> Edit</button>
+                                <button class="delete-btn" onclick="deletePost('${doc.id}')"><i class="fa fa-trash"></i> Delete</button>
+                            ` : ''}
+                        </div>
+                    `;
+                    postList.appendChild(postDiv);
+                }
+            });
+        } catch (error) {
+            console.error('Error getting posts: ', error);
+        }
     }
-}
-
-
 
     window.editPost = async function(postId, currentContent) {
         const newContent = prompt('Edit your post:', currentContent);
@@ -194,14 +203,7 @@ if (window.location.pathname.includes('index.html')) {
         }
     };
 
-    function sharePost(postId) {
-        const postUrl = `${window.location.origin}/posts/${postId}`;
-        navigator.clipboard.writeText(postUrl).then(() => {
-            alert('Post URL copied to clipboard!');
-        }).catch(err => {
-            console.error('Error copying URL: ', err);
-        });
-    }
+    searchInput.addEventListener('input', displayPosts);
 
     displayPosts();
 }
