@@ -130,43 +130,49 @@ if (window.location.pathname.includes('index.html')) {
     });
 
     async function displayPosts() {
-    const postList = document.getElementById('post-list');
-    postList.innerHTML = '';
+        const postList = document.getElementById('post-list');
+        postList.innerHTML = '';
 
-    try {
-        const q = query(collection(db, 'posts'), orderBy('timestamp', 'desc'));
-        const querySnapshot = await getDocs(q);
-        querySnapshot.forEach(doc => {
-            const post = doc.data();
-            const postDiv = document.createElement('div');
-            postDiv.classList.add('post');
+        try {
+            const q = query(collection(db, 'posts'), orderBy('timestamp', 'desc'));
+            const querySnapshot = await getDocs(q);
+            querySnapshot.forEach(doc => {
+                const post = doc.data();
+                const postDiv = document.createElement('div');
+                postDiv.classList.add('post');
 
-            // Check if display name includes "verify"
-            const isVerified = post.displayName.toLowerCase().includes('verify');
-            // Remove "verify" from display name
-            const cleanDisplayName = post.displayName.replace(/verify/i, '').trim();
-            
-            postDiv.innerHTML = `
-                <div class="author">
-                    ${cleanDisplayName} ${isVerified ? '<i class="fa fa-check-circle verified"></i> Verified' : ''}
-                </div>
-                <div class="content">${post.content}</div>
-                <div class="actions">
-                    <button class="share-btn" onclick="sharePost('${doc.id}')"><i class="fa fa-share"></i> Share</button>
-                    ${auth.currentUser && auth.currentUser.uid === post.uid ? `
-                        <button class="edit-btn" onclick="editPost('${doc.id}', '${post.content}')"><i class="fa fa-edit"></i> Edit</button>
-                        <button class="delete-btn" onclick="deletePost('${doc.id}')"><i class="fa fa-trash"></i> Delete</button>
-                    ` : ''}
-                </div>
-            `;
-            postList.appendChild(postDiv);
-        });
-    } catch (error) {
-        console.error('Error getting posts: ', error);
+                // Format timestamp
+                const timestamp = post.timestamp.toDate();
+                const formattedDate = timestamp.toLocaleString('en-US', { 
+                    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', 
+                    hour: 'numeric', minute: 'numeric', second: 'numeric', timeZoneName: 'short' 
+                });
+
+                // Check if display name includes "verify"
+                const isVerified = post.displayName.toLowerCase().includes('verify');
+                // Remove "verify" from display name
+                const cleanDisplayName = post.displayName.replace(/verify/i, '').trim();
+                
+                postDiv.innerHTML = `
+                    <div class="author">
+                        ${cleanDisplayName} ${isVerified ? '<i class="fa fa-check-circle verified"></i> Verified' : ''}
+                    </div>
+                    <div class="content">${post.content}</div>
+                    <div class="date">Published on: ${formattedDate}</div>
+                    <div class="actions">
+                        <button class="share-btn" onclick="sharePost('${doc.id}')"><i class="fa fa-share"></i> Share</button>
+                        ${auth.currentUser && auth.currentUser.uid === post.uid ? `
+                            <button class="edit-btn" onclick="editPost('${doc.id}', '${post.content}')"><i class="fa fa-edit"></i> Edit</button>
+                            <button class="delete-btn" onclick="deletePost('${doc.id}')"><i class="fa fa-trash"></i> Delete</button>
+                        ` : ''}
+                    </div>
+                `;
+                postList.appendChild(postDiv);
+            });
+        } catch (error) {
+            console.error('Error getting posts: ', error);
+        }
     }
-}
-
-
 
     window.editPost = async function(postId, currentContent) {
         const newContent = prompt('Edit your post:', currentContent);
@@ -196,11 +202,21 @@ if (window.location.pathname.includes('index.html')) {
 
     function sharePost(postId) {
         const postUrl = `${window.location.origin}/posts/${postId}`;
-        navigator.clipboard.writeText(postUrl).then(() => {
-            alert('Post URL copied to clipboard!');
-        }).catch(err => {
-            console.error('Error copying URL: ', err);
-        });
+        if (navigator.share) {
+            navigator.share({
+                title: 'Check out this post!',
+                url: postUrl
+            }).catch(err => {
+                console.error('Error sharing post: ', err);
+            });
+        } else {
+            // Fallback for browsers that don't support the Web Share API
+            navigator.clipboard.writeText(postUrl).then(() => {
+                alert('Post URL copied to clipboard!');
+            }).catch(err => {
+                console.error('Error copying URL: ', err);
+            });
+        }
     }
 
     displayPosts();
