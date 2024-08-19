@@ -171,8 +171,8 @@
                 try {
                     const q = query(collection(db, 'posts'), orderBy('timestamp', 'desc'));
                     const querySnapshot = await getDocs(q);
-                    querySnapshot.forEach(doc => {
-                        const post = doc.data();
+                    querySnapshot.forEach(docSnap => {
+                        const post = docSnap.data();
                         const postDiv = document.createElement('div');
                         postDiv.classList.add('post');
 
@@ -195,10 +195,9 @@
                             <div class="content">${post.content}</div>
                             <div class="date">Published on: ${formattedDate}</div>
                             <div class="actions">
-                                <button class="share-btn" onclick="sharePost('${doc.id}')"><i class="fa fa-share"></i> Share</button>
                                 ${auth.currentUser && auth.currentUser.uid === post.uid ? `
-                                    <button class="edit-btn" onclick="editPost('${doc.id}', '${post.content}')"><i class="fa fa-edit"></i> Edit</button>
-                                    <button class="delete-btn" onclick="deletePost('${doc.id}')"><i class="fa fa-trash"></i> Delete</button>
+                                    <button class="edit-btn" onclick="editPost('${docSnap.id}', '${post.content}')"><i class="fa fa-edit"></i> Edit</button>
+                                    <button class="delete-btn" onclick="deletePost('${docSnap.id}')"><i class="fa fa-trash"></i> Delete</button>
                                 ` : ''}
                             </div>
                         `;
@@ -234,25 +233,6 @@
                     }
                 }
             };
-
-            function sharePost(postId) {
-                const postUrl = `${window.location.origin}/posts/${postId}`;
-                if (navigator.share) {
-                    navigator.share({
-                        title: 'Check out this post!',
-                        url: postUrl
-                    }).catch(err => {
-                        console.error('Error sharing post: ', err);
-                    });
-                } else {
-                    // Fallback for browsers that don't support the Web Share API
-                    navigator.clipboard.writeText(postUrl).then(() => {
-                        alert('Post URL copied to clipboard!');
-                    }).catch(err => {
-                        console.error('Error copying URL: ', err);
-                    });
-                }
-            }
 
             displayPosts();
         }
