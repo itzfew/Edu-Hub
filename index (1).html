@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Selection</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+            position: relative;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin: 10px 0 5px;
+        }
+
+        select, input[type="number"] {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+            max-width: 500px;
+        }
+
+        button {
+            width: 100%;
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            background-color: #28a745;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 10px 0;
+            max-width: 500px;
+        }
+
+        button:hover {
+            background-color: #218838;
+        }
+
+        h2 {
+            margin-top: 20px;
+            color: #333;
+            width: 100%;
+            max-width: 500px;
+        }
+
+        .exam-list {
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 10px;
+            background-color: #f9f9f9;
+            max-height: 200px; /* Limit the height */
+            overflow-y: auto; /* Enable scrolling */
+            text-align: left;
+            width: 100%;
+            max-width: 500px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .exam-item {
+            padding: 10px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .exam-item:last-child {
+            border-bottom: none;
+        }
+
+        .exam-item a {
+            text-decoration: none;
+            color: #007bff;
+        }
+
+        .exam-item button {
+            background-color: #007bff;
+            border: none;
+            border-radius: 5px;
+            color: white;
+            padding: 5px 10px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .exam-item button:hover {
+            background-color: #0056b3;
+        }
+
+        .menu {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 1000;
+        }
+
+        .menu-icon {
+            cursor: pointer;
+            font-size: 24px;
+            color: #333;
+        }
+
+        .menu-content {
+            display: none;
+            position: absolute;
+            background-color: #fff;
+            min-width: 200px;
+            box-shadow: 0px 8px 16px rgba(0, 0, 0, 0.2);
+            z-index: 1;
+        }
+
+        .menu-content a, .menu-content button {
+            color: black;
+            padding: 12px 16px;
+            text-decoration: none;
+            display: block;
+            border: none;
+            background: none;
+            text-align: left;
+            width: 100%;
+        }
+
+        .menu-content a:hover, .menu-content button:hover {
+            background-color: #f1f1f1;
+        }
+
+        .share-button {
+            background-color: #007bff;
+            border-radius: 5px;
+            color: white;
+            padding: 10px;
+            cursor: pointer;
+            font-size: 14px;
+            width: calc(100% - 16px);
+            border: none;
+        }
+
+        .share-button:hover {
+            background-color: #0056b3;
+        }
+
+        footer {
+            position: absolute;
+            bottom: 20px;
+            left: 0;
+            right: 0;
+            text-align: center;
+            color: #333;
+            padding: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Select Quiz</h1>
+    
+    <label for="subject">Select Subject:</label>
+    <select id="subject"></select>
+
+    <label for="numQuestions">Number of Questions:</label>
+    <input type="number" id="numQuestions" min="1" max="10" value="5">
+
+    <button id="generateBtn"><i class="fas fa-clipboard-list"></i> Generate Quiz</button>
+
+    <h2>Your Attempted Exams</h2>
+    <div class="exam-list" id="examList"></div>
+
+    <div class="menu">
+        <i class="fas fa-bars menu-icon" onclick="toggleMenu()"></i>
+        <div class="menu-content" id="menuContent">
+            <a href="https://t.me/neetpw01" target="_blank"><i class="fab fa-telegram"></i> Telegram</a>
+            <a href="path/to/apk" download><i class="fas fa-download"></i> Download APK</a>
+            <button class="share-button" onclick="shareLink()"><i class="fas fa-share"></i> Share</button>
+        </div>
+    </div>
+
+    <footer id="footer"></footer>
+
+    <script src="https://www.gstatic.com/firebasejs/7.20.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/7.20.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/7.20.0/firebase-database.js"></script>
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyDIWtVfoGIWQoRVe36v6g6S3slTRRYUAgk",
+            authDomain: "quizes-3028d.firebaseapp.com",
+            databaseURL: "https://quizes-3028d-default-rtdb.firebaseio.com",
+            projectId: "quizes-3028d",
+            storageBucket: "quizes-3028d.appspot.com",
+            messagingSenderId: "624591251031",
+            appId: "1:624591251031:web:e093472f24fdeb29fc2512",
+            measurementId: "G-QMZK5Y6769"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const database = firebase.database();
+
+        auth.onAuthStateChanged(user => {
+            if (user) {
+                document.getElementById('footer').innerHTML = `Logged in as: <strong>${user.email}</strong>`;
+                fetchAttemptedExams(user.uid);
+                fetchSubjects();
+            } else {
+                window.location.href = 'login.html';
+            }
+        });
+
+        function fetchSubjects() {
+            const subjectSelect = document.getElementById('subject');
+            database.ref('quizzes').once('value').then(snapshot => {
+                const subjects = new Set();
+                snapshot.forEach(childSnapshot => {
+                    const quizData = childSnapshot.val();
+                    if (quizData.subjectName) {
+                        subjects.add(quizData.subjectName);
+                    }
+                });
+                subjects.forEach(subject => {
+                    const option = document.createElement('option');
+                    option.value = subject;
+                    option.textContent = subject;
+                    subjectSelect.appendChild(option);
+                });
+            });
+        }
+
+        function fetchAttemptedExams(userId) {
+            const examList = document.getElementById('examList');
+            database.ref(`users/${userId}/exams`).once('value').then(snapshot => {
+                let examCount = 0; // To track the number of exams added
+                snapshot.forEach(childSnapshot => {
+                    const { examID, date, score } = childSnapshot.val();
+                    const examItem = document.createElement('div');
+                    examItem.className = 'exam-item';
+                    examItem.innerHTML = `<a href="detail.html?examID=${examID}"><i class="fas fa-file-alt"></i> Exam ID: ${examID} | Date: ${date} | Score: ${score}</a> <button onclick="viewResult('${examID}')"><i class="fas fa-eye"></i> View Result</button>`;
+                    examList.appendChild(examItem);
+                    examCount++;
+                });
+
+                // If less than 3 exams, set the height to fit all items
+                if (examCount < 3) {
+                    examList.style.maxHeight = 'none';
+                }
+            });
+        }
+
+        function viewResult(examID) {
+            window.location.href = `detail.html?examID=${examID}`;
+        }
+
+        document.getElementById('generateBtn').onclick = function() {
+            const subject = document.getElementById('subject').value;
+            const numQuestions = document.getElementById('numQuestions').value;
+            window.location.href = `play.html?subject=${subject}&numQuestions=${numQuestions}`;
+        };
+
+        function toggleMenu() {
+            const menuContent = document.getElementById('menuContent');
+            menuContent.style.display = menuContent.style.display === 'block' ? 'none' : 'block';
+        }
+
+        function shareLink() {
+            const shareText = "Check out this quiz app!";
+            navigator.share({
+                title: 'Quiz App',
+                text: shareText,
+                url: window.location.href
+            }).catch(console.error);
+        }
+    </script>
+</body>
+</html>
