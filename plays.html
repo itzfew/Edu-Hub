@@ -10,6 +10,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
+        /* Existing styles... */
         body {
             font-family: 'Arial', sans-serif;
             margin: 0;
@@ -40,100 +41,17 @@
             border-bottom: 1px solid #ddd;
         }
 
-        label {
-            display: block;
-            margin: 10px 0;
-            cursor: pointer;
-        }
-
-        button {
-            background-color: #007bff;
-            color: white;
-            padding: 10px 20px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 16px;
-            margin-top: 20px;
-            transition: background-color 0.3s;
-        }
-
-        button:hover {
-            background-color: #0056b3;
-        }
-
-        .result {
-            display: none;
-            margin-top: 20px;
-            padding: 20px;
-            background-color: #f8f9fa;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-        }
-
-        .correct {
-            color: green;
-        }
-
-        .incorrect {
-            color: red;
-        }
-
-        .menu {
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            z-index: 1000;
-        }
-
-        .menu-icon {
-            font-size: 24px;
-            cursor: pointer;
-            color: #333;
-        }
-
-        .menu-content {
-            display: none;
-            position: absolute;
-            background-color: #fff;
-            min-width: 200px;
-            box-shadow: 0px 8px 16px rgba(0, 0, 0, 0.2);
-            border-radius: 5px;
-            z-index: 1;
-        }
-
-        .menu-content a, .menu-content button {
-            color: black;
-            padding: 12px 16px;
-            text-decoration: none;
-            display: block;
-            border: none;
-            background: none;
-            text-align: left;
-            width: 100%;
-        }
-
-        .menu-content a:hover, .menu-content button:hover {
-            background-color: #f1f1f1;
-        }
-
-        footer {
+        .no-questions {
             text-align: center;
-            color: #333;
-            padding: 10px;
-            margin-top: auto;
-        }
-
-        .separator {
-            height: 2px;
-            background-color: #007bff;
             margin: 20px 0;
         }
 
-        .image-question {
+        .no-questions img {
             max-width: 100%;
             height: auto;
         }
+
+        /* Other styles... */
     </style>
 </head>
 <body>
@@ -149,6 +67,10 @@
     <h1 id="quizSubject"></h1>
     <div class="quiz-container">
         <form id="quizForm"></form>
+        <div id="noQuestions" class="no-questions" style="display: none;">
+            <p>No questions available for this subject.</p>
+            <img src="path/to/your/image.jpg" alt="No Questions Available" />
+        </div>
         <button id="submitBtn">Submit Answers</button>
         <div id="result" class="result">
             <h2>Your Results</h2>
@@ -160,6 +82,7 @@
     <footer id="footer"></footer>
 
     <script>
+        // Firebase config and initialization...
         const firebaseConfig = {
             apiKey: "AIzaSyDIWtVfoGIWQoRVe36v6g6S3slTRRYUAgk",
             authDomain: "quizes-3028d.firebaseapp.com",
@@ -178,7 +101,6 @@
         auth.onAuthStateChanged(user => {
             if (user) {
                 document.getElementById('footer').innerHTML = `Logged in as: <strong>${user.email}</strong>`;
-                fetchAttemptedExams(user.uid);
                 fetchSubjects();
             } else {
                 window.location.href = 'login.html';
@@ -200,8 +122,7 @@
                 const quizData = childSnapshot.val();
                 if (quizData.subjectName === subject) {
                     questions.push({
-                        question: quizData.question || '',
-                        image: quizData.image || '', // Assuming image URL is provided here
+                        question: quizData.question,
                         options: quizData.options,
                         answer: parseInt(quizData.correctOption),
                         explanation: quizData.explanation || "No explanation provided.",
@@ -210,32 +131,38 @@
                 }
             });
 
-            selectedQuestions = questions.sort(() => 0.5 - Math.random()).slice(0, numQuestions);
+            if (questions.length === 0) {
+                // Display image when no questions are available
+                document.getElementById('noQuestions').style.display = 'block';
+                document.getElementById('submitBtn').style.display = 'none';
+            } else {
+                // Shuffle and select questions
+                selectedQuestions = questions.sort(() => 0.5 - Math.random()).slice(0, numQuestions);
 
-            const quizForm = document.getElementById('quizForm');
-            selectedQuestions.forEach((q, index) => {
-                quizForm.innerHTML += `
-                    <div class="question">
-                        <strong>${index + 1}.</strong>
-                        ${q.question ? `<p>${q.question}</p>` : ''}
-                        ${q.image ? `<img src="${q.image}" alt="Question Image" class="image-question">` : ''}
-                        ${q.options.map((opt, i) => `
-                            <label>
-                                <input type="radio" name="question${index}" value="${i + 1}"> ${opt}
-                            </label>
-                        `).join('')}
-                    </div>
-                `;
-            });
+                const quizForm = document.getElementById('quizForm');
+                selectedQuestions.forEach((q, index) => {
+                    quizForm.innerHTML += `
+                        <div class="question">
+                            <strong>${index + 1}. ${q.question}</strong>
+                            ${q.options.map((opt, i) => `
+                                <label>
+                                    <input type="radio" name="question${index}" value="${i + 1}"> ${opt}
+                                </label>
+                            `).join('')}
+                        </div>
+                    `;
+                });
 
-            document.getElementById('submitBtn').onclick = function(event) {
-                event.preventDefault();
-                userAnswers = getUserAnswers(selectedQuestions);
-                const score = calculateResults(selectedQuestions, userAnswers);
-                showResults(selectedQuestions, userAnswers, score);
-            };
+                document.getElementById('submitBtn').onclick = function(event) {
+                    event.preventDefault();
+                    userAnswers = getUserAnswers(selectedQuestions);
+                    const score = calculateResults(selectedQuestions, userAnswers);
+                    showResults(selectedQuestions, userAnswers, score);
+                };
+            }
         });
 
+        // Existing functions (getUserAnswers, calculateResults, showResults, saveQuiz, etc.)...
         function getUserAnswers(questions) {
             return questions.map((_, index) => {
                 const selectedOption = document.querySelector(`input[name="question${index}"]:checked`);
@@ -294,7 +221,6 @@
                 questions: questions.map(q => ({
                     id: q.id,
                     question: q.question,
-                    image: q.image,
                     options: q.options,
                     correctAnswer: q.answer,
                     explanation: q.explanation
