@@ -16,7 +16,6 @@
             margin: 0;
             padding: 20px;
             min-height: 100vh;
-            position: relative;
         }
 
         h1 {
@@ -25,7 +24,6 @@
         }
 
         label {
-            display: block;
             margin: 10px 0 5px;
         }
 
@@ -68,18 +66,19 @@
             border-radius: 5px;
             padding: 10px;
             background-color: #f9f9f9;
-            max-height: 200px; /* Limit the height */
-            overflow-y: auto; /* Enable scrolling */
-            text-align: left;
+            max-height: 200px;
+            overflow-y: auto;
             width: 100%;
             max-width: 500px;
-            display: flex;
-            flex-direction: column;
+            margin-bottom: 20px;
         }
 
         .exam-item {
             padding: 10px;
             border-bottom: 1px solid #ddd;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
 
         .exam-item:last-child {
@@ -89,6 +88,7 @@
         .exam-item a {
             text-decoration: none;
             color: #007bff;
+            flex-grow: 1;
         }
 
         .exam-item button {
@@ -99,6 +99,7 @@
             padding: 5px 10px;
             cursor: pointer;
             font-size: 14px;
+            margin-left: 10px;
         }
 
         .exam-item button:hover {
@@ -132,7 +133,6 @@
             padding: 12px 16px;
             text-decoration: none;
             display: block;
-            border: none;
             background: none;
             text-align: left;
             width: 100%;
@@ -171,8 +171,10 @@
 <body>
     <h1>Select Quiz</h1>
     
-    <label for="subject">Select Subject:</label>
-    <select id="subject"></select>
+    <label for="subject">Select Subjects:</label>
+    <select id="subject" multiple>
+        <!-- Options will be populated here -->
+    </select>
 
     <label for="numQuestions">Number of Questions:</label>
     <input type="number" id="numQuestions" min="1" max="10" value="5">
@@ -244,7 +246,7 @@
         function fetchAttemptedExams(userId) {
             const examList = document.getElementById('examList');
             database.ref(`users/${userId}/exams`).once('value').then(snapshot => {
-                let examCount = 0; // To track the number of exams added
+                let examCount = 0; 
                 snapshot.forEach(childSnapshot => {
                     const { examID, date, score } = childSnapshot.val();
                     const examItem = document.createElement('div');
@@ -254,7 +256,6 @@
                     examCount++;
                 });
 
-                // If less than 3 exams, set the height to fit all items
                 if (examCount < 3) {
                     examList.style.maxHeight = 'none';
                 }
@@ -266,9 +267,12 @@
         }
 
         document.getElementById('generateBtn').onclick = function() {
-            const subject = document.getElementById('subject').value;
+            const subjectSelect = document.getElementById('subject');
+            const selectedSubjects = Array.from(subjectSelect.selectedOptions).map(option => option.value);
             const numQuestions = document.getElementById('numQuestions').value;
-            window.location.href = `play.html?subject=${subject}&numQuestions=${numQuestions}`;
+            const subjectsParam = selectedSubjects.join(',');
+
+            window.location.href = `play.html?subjects=${encodeURIComponent(subjectsParam)}&numQuestions=${numQuestions}`;
         };
 
         function toggleMenu() {
