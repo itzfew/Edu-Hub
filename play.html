@@ -129,6 +129,35 @@
             background-color: #007bff;
             margin: 20px 0;
         }
+
+        /* Styles for the zoom feature */
+        .zoom {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            justify-content: center;
+            align-items: center;
+        }
+
+        .zoom img {
+            max-width: 90%;
+            max-height: 90%;
+            object-fit: contain;
+            border-radius: 8px;
+        }
+
+        /* Styles for the question images */
+        .question img {
+            width: 70%; /* Adjust this value to make the images smaller */
+            max-width: 600px; /* Maximum width of the images */
+            height: auto; /* Maintain aspect ratio */
+            cursor: pointer; /* Indicate clickable images */
+        }
     </style>
 </head>
 <body>
@@ -153,6 +182,10 @@
     </div>
 
     <footer id="footer"></footer>
+
+    <div id="zoomImage" class="zoom" onclick="closeZoom()">
+        <img id="zoomedImg" alt="Zoomed Image">
+    </div>
 
     <script>
         const firebaseConfig = {
@@ -195,10 +228,11 @@
                 const quizData = childSnapshot.val();
                 if (quizData.subjectName === subject) {
                     questions.push({
-                        question: quizData.question,
+                        question: quizData.question || "",
                         options: quizData.options,
                         answer: parseInt(quizData.correctOption),
                         explanation: quizData.explanation || "No explanation provided.",
+                        imageUrl: quizData.imageUrl || null,
                         id: childSnapshot.key
                     });
                 }
@@ -210,7 +244,7 @@
             selectedQuestions.forEach((q, index) => {
                 quizForm.innerHTML += `
                     <div class="question">
-                        <strong>${index + 1}. ${q.question}</strong>
+                        <strong>${index + 1}. ${q.question ? q.question : '<img src="' + q.imageUrl + '" alt="Question Image" onclick="zoomImage(\'' + q.imageUrl + '\')">'} </strong>
                         ${q.options.map((opt, i) => `
                             <label>
                                 <input type="radio" name="question${index}" value="${i + 1}"> ${opt}
@@ -288,7 +322,8 @@
                     question: q.question,
                     options: q.options,
                     correctAnswer: q.answer,
-                    explanation: q.explanation
+                    explanation: q.explanation,
+                    imageUrl: q.imageUrl
                 }))
             };
 
@@ -317,6 +352,16 @@
                 text: shareText,
                 url: window.location.href
             }).catch(console.error);
+        }
+
+        function zoomImage(imageUrl) {
+            const zoomImage = document.getElementById('zoomedImg');
+            zoomImage.src = imageUrl;
+            document.getElementById('zoomImage').style.display = 'flex';
+        }
+
+        function closeZoom() {
+            document.getElementById('zoomImage').style.display = 'none';
         }
     </script>
 </body>
