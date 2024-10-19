@@ -131,7 +131,7 @@
         }
 
         /* Styles for the zoom feature */
-.zoom {
+        .zoom {
             display: none;
             position: fixed;
             z-index: 1000;
@@ -149,6 +149,14 @@
             max-height: 90%;
             object-fit: contain;
             border-radius: 8px;
+        }
+
+        /* Styles for the question images */
+        .question img {
+            width: 50%; /* Adjust this value to make the images smaller */
+            max-width: 200px; /* Maximum width of the images */
+            height: auto; /* Maintain aspect ratio */
+            cursor: pointer; /* Indicate clickable images */
         }
     </style>
 </head>
@@ -220,11 +228,11 @@
                 const quizData = childSnapshot.val();
                 if (quizData.subjectName === subject) {
                     questions.push({
-                        question: quizData.question || "", // Use empty string if question is not available
+                        question: quizData.question || "",
                         options: quizData.options,
                         answer: parseInt(quizData.correctOption),
                         explanation: quizData.explanation || "No explanation provided.",
-                        imageUrl: quizData.imageUrl || null, // Use image URL if available
+                        imageUrl: quizData.imageUrl || null,
                         id: childSnapshot.key
                     });
                 }
@@ -315,7 +323,7 @@
                     options: q.options,
                     correctAnswer: q.answer,
                     explanation: q.explanation,
-                    imageUrl: q.imageUrl // Save image URL if available
+                    imageUrl: q.imageUrl
                 }))
             };
 
