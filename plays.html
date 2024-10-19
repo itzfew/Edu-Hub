@@ -281,42 +281,46 @@
         }
 
         function saveQuiz(questions, userAnswers, score) {
-            const user = auth.currentUser;
-            if (!user) {
-                alert("User not authenticated.");
-                return;
-            }
+    const user = auth.currentUser;
+    if (!user) {
+        alert("User not authenticated.");
+        return;
+    }
 
-            const date = new Date();
-            const dateString = date.toISOString().split('T')[0];
-            const timeStamp = date.getTime();
-            examID = `${dateString}-quiz-${timeStamp}`;
+    const date = new Date();
+    const dateString = date.toISOString().split('T')[0];
+    const timeString = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    examID = `${dateString}-quiz-${date.getTime()}`;
 
-            const examData = {
-                examID,
-                subjects,
-                date: dateString,
-                score,
-                email: user.email,
-                userAnswers,
-                questions: questions.map(q => ({
-                    id: q.id,
-                    question: q.question,
-                    options: q.options,
-                    correctAnswer: q.answer,
-                    explanation: q.explanation,
-                    imageUrl: q.imageUrl
-                }))
-            };
+    // Generate the automatic subject name
+    const subjectName = `Conducted on: ${dateString}, at ${timeString}`;
 
-            database.ref(`users/${user.uid}/exams/${examID}`).set(examData)
-                .then(() => {
-                    console.log(`Quiz saved successfully with ID: ${examID}`);
-                })
-                .catch(error => {
-                    console.error('Error saving quiz:', error);
-                });
-        }
+    const examData = {
+        examID,
+        subject: subjectName, // Save the automatic subject name
+        date: dateString,
+        score,
+        email: user.email,
+        userAnswers,
+        questions: questions.map(q => ({
+            id: q.id,
+            question: q.question,
+            options: q.options,
+            correctAnswer: q.answer,
+            explanation: q.explanation,
+            imageUrl: q.imageUrl
+        }))
+    };
+
+    database.ref(`users/${user.uid}/exams/${examID}`).set(examData)
+        .then(() => {
+            console.log(`Quiz saved successfully with ID: ${examID}`);
+        })
+        .catch(error => {
+            console.error('Error saving quiz:', error);
+        });
+}
+
 
         document.getElementById('viewDetailBtn').onclick = function() {
             window.location.href = `detail.html?examID=${examID}`;
