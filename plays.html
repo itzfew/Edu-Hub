@@ -32,14 +32,12 @@
             padding: 20px;
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
             margin-bottom: 20px;
-            overflow: hidden;
         }
 
         .question {
             margin: 20px 0;
             padding: 15px;
             border-bottom: 1px solid #ddd;
-            word-wrap: break-word;
         }
 
         label {
@@ -58,7 +56,6 @@
             font-size: 16px;
             margin-top: 20px;
             transition: background-color 0.3s;
-            width: 100%;
         }
 
         button:hover {
@@ -133,22 +130,7 @@
             margin: 20px 0;
         }
 
-        /* Responsive Styles */
-        @media (max-width: 600px) {
-            button {
-                font-size: 14px;
-            }
-
-            .menu-icon {
-                font-size: 20px;
-            }
-
-            h1 {
-                font-size: 24px;
-            }
-        }
-
-        /* Image Zoom */
+        /* Styles for the zoom feature */
         .zoom {
             display: none;
             position: fixed;
@@ -157,15 +139,15 @@
             top: 0;
             width: 100%;
             height: 100%;
-            object-fit: contain;
             background-color: rgba(0, 0, 0, 0.8);
             justify-content: center;
             align-items: center;
         }
 
         .zoom img {
-            max-width: 90%;
-            max-height: 90%;
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain; /* Ensure the image fits without being cut off */
             border-radius: 8px;
         }
     </style>
@@ -193,8 +175,8 @@
 
     <footer id="footer"></footer>
 
-    <div class="zoom" id="zoomImage" onclick="closeZoom()">
-        <img id="zoomedImg" src="" alt="Zoomed Image">
+    <div id="zoomImage" class="zoom" onclick="closeZoom()">
+        <img id="zoomedImg" alt="Zoomed Image">
     </div>
 
     <script>
@@ -238,12 +220,12 @@
                 const quizData = childSnapshot.val();
                 if (quizData.subjectName === subject) {
                     questions.push({
-                        question: quizData.question || '',
+                        question: quizData.question || "", // Use empty string if question is not available
                         options: quizData.options,
                         answer: parseInt(quizData.correctOption),
                         explanation: quizData.explanation || "No explanation provided.",
-                        id: childSnapshot.key,
-                        imageUrl: quizData.imageUrl || null // Assuming this field may not exist
+                        imageUrl: quizData.imageUrl || null, // Use image URL if available
+                        id: childSnapshot.key
                     });
                 }
             });
@@ -254,12 +236,12 @@
             selectedQuestions.forEach((q, index) => {
                 quizForm.innerHTML += `
                     <div class="question">
-                        <strong>${index + 1}. ${q.question ? q.question : '<img src="' + q.imageUrl + '" alt="Question Image" class="question-image" onclick="zoomImage(\'' + q.imageUrl + '\')">'}</strong>
-                        ${q.options ? q.options.map((opt, i) => `
+                        <strong>${index + 1}. ${q.question ? q.question : '<img src="' + q.imageUrl + '" alt="Question Image" onclick="zoomImage(\'' + q.imageUrl + '\')">'} </strong>
+                        ${q.options.map((opt, i) => `
                             <label>
                                 <input type="radio" name="question${index}" value="${i + 1}"> ${opt}
                             </label>
-                        `).join('') : ''}
+                        `).join('')}
                     </div>
                 `;
             });
@@ -333,7 +315,7 @@
                     options: q.options,
                     correctAnswer: q.answer,
                     explanation: q.explanation,
-                    imageUrl: q.imageUrl // Save the image URL if available
+                    imageUrl: q.imageUrl // Save image URL if available
                 }))
             };
 
