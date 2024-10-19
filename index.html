@@ -288,6 +288,21 @@
                 url: window.location.href
             }).catch(console.error);
         }
+        document.getElementById('generateBtn').onclick = function() {
+        const subjectSelect = document.getElementById('subject');
+        const selectedSubjects = Array.from(subjectSelect.selectedOptions).map(option => option.value);
+        const numQuestions = document.getElementById('numQuestions').value;
+
+        // Check if any subject is selected
+        if (selectedSubjects.length === 0) {
+            alert("Please select at least one subject before generating the quiz.");
+            return; // Exit the function if no subjects are selected
+        }
+
+        const subjectsParam = selectedSubjects.join(',');
+
+        window.location.href = `play.html?subjects=${encodeURIComponent(subjectsParam)}&numQuestions=${numQuestions}`;
+    };
     </script>
 </body>
 </html>
