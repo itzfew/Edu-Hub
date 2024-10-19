@@ -68,8 +68,8 @@
             border-radius: 5px;
             padding: 10px;
             background-color: #f9f9f9;
-            max-height: 200px; /* Limit the height */
-            overflow-y: auto; /* Enable scrolling */
+            max-height: 200px;
+            overflow-y: auto;
             text-align: left;
             width: 100%;
             max-width: 500px;
@@ -244,20 +244,13 @@
         function fetchAttemptedExams(userId) {
             const examList = document.getElementById('examList');
             database.ref(`users/${userId}/exams`).once('value').then(snapshot => {
-                let examCount = 0; // To track the number of exams added
                 snapshot.forEach(childSnapshot => {
                     const { examID, date, score } = childSnapshot.val();
                     const examItem = document.createElement('div');
                     examItem.className = 'exam-item';
                     examItem.innerHTML = `<a href="detail.html?examID=${examID}"><i class="fas fa-file-alt"></i> Exam ID: ${examID} | Date: ${date} | Score: ${score}</a> <button onclick="viewResult('${examID}')"><i class="fas fa-eye"></i> View Result</button>`;
                     examList.appendChild(examItem);
-                    examCount++;
                 });
-
-                // If less than 3 exams, set the height to fit all items
-                if (examCount < 3) {
-                    examList.style.maxHeight = 'none';
-                }
             });
         }
 
