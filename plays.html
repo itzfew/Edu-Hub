@@ -41,14 +41,13 @@
             border-bottom: 1px solid #ddd;
         }
 
-        .no-questions {
-            text-align: center;
-            margin: 20px 0;
-        }
-
-        .no-questions img {
-            max-width: 100%;
-            height: auto;
+        /* Styles for the iframe */
+        #previewIframe {
+            display: none;
+            width: 100%;
+            height: 400px; /* Adjust height as needed */
+            border: none;
+            border-radius: 8px;
         }
 
         /* Other styles... */
@@ -67,10 +66,7 @@
     <h1 id="quizSubject"></h1>
     <div class="quiz-container">
         <form id="quizForm"></form>
-        <div id="noQuestions" class="no-questions" style="display: none;">
-            <p>No questions available for this subject.</p>
-            <img src="path/to/your/image.jpg" alt="No Questions Available" />
-        </div>
+        <iframe id="previewIframe" src="path/to/your/preview.html" title="Preview"></iframe>
         <button id="submitBtn">Submit Answers</button>
         <div id="result" class="result">
             <h2>Your Results</h2>
@@ -132,8 +128,8 @@
             });
 
             if (questions.length === 0) {
-                // Display image when no questions are available
-                document.getElementById('noQuestions').style.display = 'block';
+                // Show the iframe when no questions are available
+                document.getElementById('previewIframe').style.display = 'block';
                 document.getElementById('submitBtn').style.display = 'none';
             } else {
                 // Shuffle and select questions
