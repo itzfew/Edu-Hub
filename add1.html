@@ -33,7 +33,7 @@
             margin: 10px 0 5px;
             font-weight: bold;
         }
-        input, textarea {
+        input, textarea, select {
             width: 100%;
             padding: 10px;
             margin-bottom: 15px;
@@ -44,7 +44,7 @@
             background-color: #f0f0f0;
             transition: background-color 0.3s;
         }
-        input:focus, textarea:focus {
+        input:focus, textarea:focus, select:focus {
             background-color: #e0e0e0;
         }
         button {
@@ -72,8 +72,16 @@
 <body>
     <h1>Add Quiz Questions</h1>
     <div class="form-container">
-        <label for="bulkQuestions">Common Subject (first line) and Bulk Questions (7 lines per question):</label>
-        <textarea id="bulkQuestions" rows="20" placeholder="Enter common subject, followed by questions, each set of 7 lines followed by a gap for the next question" required></textarea>
+        <label for="subjectSelect">Select Subject:</label>
+        <select id="subjectSelect" required>
+            <option value="">--Select a Subject--</option>
+        </select>
+        
+        <label for="newSubject">Or Enter New Subject:</label>
+        <input type="text" id="newSubject" placeholder="Enter new subject if not listed" />
+
+        <label for="bulkQuestions">Bulk Questions (use # to separate):</label>
+        <textarea id="bulkQuestions" rows="20" placeholder="Enter questions, separated by #." required></textarea>
         
         <button id="submitBtn">Add Questions</button>
     </div>
@@ -100,52 +108,83 @@
         auth.onAuthStateChanged(user => {
             if (user) {
                 document.getElementById('footer').innerHTML = `Logged in as: <strong>${user.email}</strong>`;
+                loadSubjects();
             } else {
                 window.location.href = 'login.html';
             }
         });
 
-        document.getElementById('submitBtn').onclick = function() {
-            const bulkInput = document.getElementById('bulkQuestions').value.trim();
-            const questionBlocks = bulkInput.split(/\n\s*\n/); // Split by double newlines
+        function loadSubjects() {
+            database.ref('quizzes').once('value').then(snapshot => {
+                const subjects = new Set(); // Use Set to avoid duplicates
+                snapshot.forEach(childSnapshot => {
+                    const subject = childSnapshot.val().subjectName;
+                    subjects.add(subject);
+                });
 
-            if (questionBlocks.length < 1) {
-                alert('Please enter at least one question.');
+                subjects.forEach(subject => {
+                    const option = document.createElement('option');
+                    option.value = subject;
+                    option.textContent = subject;
+                    document.getElementById('subjectSelect').appendChild(option);
+                });
+            });
+        }
+
+        document.getElementById('submitBtn').onclick = function() {
+            const selectedSubject = document.getElementById('subjectSelect').value;
+            const newSubject = document.getElementById('newSubject').value.trim();
+            const subjectToUse = newSubject || selectedSubject;
+
+            const bulkInput = document.getElementById('bulkQuestions').value.trim();
+            const questionBlocks = bulkInput.split(/#\s*/); // Split by #
+
+            if (questionBlocks.length < 1 || !subjectToUse) {
+                alert('Please select a subject or enter a new one, and enter at least one question.');
                 return;
             }
 
-            const subjectName = questionBlocks[0].trim(); // First block is the subject
+            const validQuestions = [];
 
-            questionBlocks.slice(1).forEach(block => {
-                const questionLines = block.split('\n').map(line => line.trim()).filter(line => line); // Split and trim lines
+            for (let i = 0; i < questionBlocks.length; i += 6) {
+                const questionLines = questionBlocks.slice(i, i + 6).map(line => line.trim()).filter(line => line); // Get the next 6 lines
 
-                if (questionLines.length < 7) return; // Ensure there are enough lines
+                if (questionLines.length === 6) { // Ensure there are exactly 6 lines
+                    const question = questionLines[0]; // The question itself
+                    const options = questionLines.slice(1, 5); // The options
+                    const correctOption = parseInt(questionLines[5].trim()); // Correct option index
 
-                const question = questionLines[0]; // The question itself
-                const options = questionLines.slice(1, 5); // The options
-                const correctOption = parseInt(questionLines[5].trim()); // Correct option index
-                const explanation = questionLines[6]; // Explanation
+                    if (correctOption >= 1 && correctOption <= 4) { // Ensure correct option is valid
+                        validQuestions.push({
+                            subjectName: subjectToUse,
+                            question: question,
+                            options: options,
+                            correctOption: correctOption,
+                            date: new Date().toISOString()
+                        });
+                    }
+                }
+            }
 
-                const quizData = {
-                    subjectName: subjectName,
-                    question: question,
-                    options: options,
-                    correctOption: correctOption,
-                    explanation: explanation,
-                    date: new Date().toISOString()
-                };
+            if (validQuestions.length === 0) {
+                alert('No valid questions found. Please check your input format.');
+                return;
+            }
 
-                database.ref('quizzes').push(quizData)
-                    .then(() => {
-                        console.log('Quiz question added successfully!');
-                    })
-                    .catch(error => {
-                        console.error('Error adding quiz question:', error);
-                    });
+            // Add valid questions to Firebase
+            const promises = validQuestions.map(quizData => {
+                return database.ref('quizzes').push(quizData);
             });
 
-            alert('Bulk quiz questions added successfully!');
-            document.getElementById('bulkQuestions').value = ''; // Clear the textarea
+            Promise.all(promises)
+                .then(() => {
+                    alert('Bulk quiz questions added successfully!');
+                    document.getElementById('bulkQuestions').value = ''; // Clear the textarea
+                    document.getElementById('newSubject').value = ''; // Clear the new subject input
+                })
+                .catch(error => {
+                    console.error('Error adding quiz question:', error);
+                });
         };
     </script>
 </body>
