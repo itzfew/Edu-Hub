@@ -10,6 +10,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
+        /* CSS styles remain unchanged */
         body {
             font-family: 'Arial', sans-serif;
             margin: 0;
@@ -162,12 +163,35 @@
             margin-top: 10px;
             text-align: right;
         }
+        /* ... existing styles ... */
+        .profile-info {
+            display: flex;
+            align-items: center;
+            padding: 12px;
+        }
+        .profile-pic {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            margin-right: 10px;
+            background-color: #ddd;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 20px;
+            color: white;
+            text-align: center;
+        }
     </style>
 </head>
 <body>
     <div class="menu">
         <i class="fas fa-bars menu-icon" onclick="toggleMenu()"></i>
         <div class="menu-content" id="menuContent">
+            <div id="profileInfo" class="profile-info">
+                <div id="profilePic" class="profile-pic"><i class="fas fa-user"></i></div>
+                <span id="userName"></span>
+            </div>
             <a href="https://t.me/neetpw01" target="_blank"><i class="fab fa-telegram"></i> Telegram</a>
             <a href="path/to/apk" download><i class="fas fa-download"></i> Download APK</a>
             <button onclick="shareLink()"><i class="fas fa-share"></i> Share</button>
@@ -197,6 +221,14 @@
         <div class="popup-close" onclick="closePopup()">Close</div>
     </div>
 
+    <!-- Report Question Popup -->
+    <div id="reportPopup" class="popup">
+        <div class="popup-header">Report Question</div>
+        <textarea id="reportText" placeholder="Please describe the issue..." rows="4" style="width: 100%;"></textarea>
+        <button id="submitReportBtn">Submit Report</button>
+        <div class="popup-close" onclick="closeReportPopup()">Close</div>
+    </div>
+
     <script>
         const firebaseConfig = {
             apiKey: "AIzaSyDIWtVfoGIWQoRVe36v6g6S3slTRRYUAgk",
@@ -215,7 +247,16 @@
 
         auth.onAuthStateChanged(user => {
             if (user) {
-                document.getElementById('footer').innerHTML = `Logged in as: <strong>${user.email}</strong>`;
+                const userName = user.displayName || user.email.split('@')[0]; // Use displayName or first part of email
+                document.getElementById('userName').innerText = userName;
+
+                const profilePic = document.getElementById('profilePic');
+                if (user.photoURL) {
+                    profilePic.style.backgroundImage = `url(${user.photoURL})`;
+                    profilePic.style.backgroundSize = 'cover';
+                    profilePic.innerHTML = ''; // Clear icon if photoURL is present
+                }
+
                 fetchAttemptedExams(user.uid);
                 fetchSubjects();
             } else {
@@ -224,20 +265,18 @@
         });
 
         const urlParams = new URLSearchParams(window.location.search);
-        const subjects = urlParams.get('subjects').split(','); // Get multiple subjects
+        const subjects = urlParams.get('subjects').split(','); 
         const numQuestions = parseInt(urlParams.get('numQuestions'));
         let selectedQuestions = [];
         let examID = "";
         let userAnswers = [];
 
-        // Show only the first two subjects and an "etc." link if more than two
         const displayedSubjects = subjects.slice(0, 2);
         document.getElementById('quizSubject').innerText = `Subjects: ${displayedSubjects.join(', ')}`;
         if (subjects.length > 2) {
             document.getElementById('quizSubject').innerHTML += `... <span onclick="showAllSubjects()" style="color: blue; cursor: pointer;">etc.</span>`;
         }
 
-        // Fetch questions based on multiple subjects
         database.ref('quizzes').once('value').then(snapshot => {
             const questions = [];
             snapshot.forEach(childSnapshot => {
@@ -266,6 +305,9 @@
                                 <input type="radio" name="question${index}" value="${i + 1}"> ${opt}
                             </label>
                         `).join('')}
+                        <button type="button" onclick="reportQuestion('${q.id}')">
+                            <i class="fas fa-exclamation-triangle" style="color: orange;"></i>
+                        </button>
                     </div>
                 `;
             });
@@ -277,6 +319,42 @@
                 showResults(selectedQuestions, userAnswers, score);
             };
         });
+
+        function reportQuestion(questionId) {
+            document.getElementById('submitReportBtn').onclick = function() {
+                const reportText = document.getElementById('reportText').value;
+                submitReport(questionId, reportText);
+            };
+            document.getElementById('reportPopup').style.display = 'block';
+        }
+
+        function submitReport(questionId, reportText) {
+            if (reportText.trim() === "") {
+                alert("Please provide a report.");
+                return;
+            }
+
+            const reportData = {
+                questionId,
+                reportText,
+                reportedBy: auth.currentUser.email,
+                timestamp: firebase.database.ServerValue.TIMESTAMP
+            };
+
+            database.ref('reports').push(reportData)
+                .then(() => {
+                    alert("Report submitted successfully.");
+                    closeReportPopup();
+                })
+                .catch(error => {
+                    console.error('Error submitting report:', error);
+                });
+        }
+
+        function closeReportPopup() {
+            document.getElementById('reportPopup').style.display = 'none';
+            document.getElementById('reportText').value = ""; // Clear the textarea
+        }
 
         function getUserAnswers(questions) {
             return questions.map((_, index) => {
@@ -326,12 +404,11 @@
             const timeString = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
             examID = `${dateString}-quiz-${date.getTime()}`;
 
-            // Generate the automatic subject name
             const subjectName = `Conducted on: ${dateString}, at ${timeString}`;
 
             const examData = {
                 examID,
-                subject: subjectName, // Save the automatic subject name
+                subject: subjectName,
                 date: dateString,
                 score,
                 email: user.email,
