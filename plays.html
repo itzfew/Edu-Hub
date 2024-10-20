@@ -35,6 +35,14 @@
             margin: 20px 0;
             padding: 15px;
             border-bottom: 1px solid #ddd;
+            position: relative;
+        }
+        .report-indicator {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            color: red;
+            font-weight: bold;
         }
         label {
             display: block;
@@ -69,77 +77,12 @@
         .incorrect {
             color: red;
         }
-        .menu {
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            z-index: 1000;
-        }
-        .menu-icon {
-            font-size: 24px;
-            cursor: pointer;
-            color: #333;
-        }
-        .menu-content {
-            display: none;
-            position: absolute;
-            background-color: #fff;
-            min-width: 200px;
-            box-shadow: 0px 8px 16px rgba(0, 0, 0, 0.2);
-            border-radius: 5px;
-            z-index: 1;
-        }
-        .menu-content a, .menu-content button {
-            color: black;
-            padding: 12px 16px;
-            text-decoration: none;
-            display: block;
-            border: none;
-            background: none;
-            text-align: left;
-            width: 100%;
-        }
-        .menu-content a:hover, .menu-content button:hover {
-            background-color: #f1f1f1;
-        }
         footer {
             text-align: center;
             color: #333;
             padding: 10px;
             margin-top: auto;
         }
-        .separator {
-            height: 2px;
-            background-color: #007bff;
-            margin: 20px 0;
-        }
-        /* Styles for the zoom feature */
-        .zoom {
-            display: none;
-            position: fixed;
-            z-index: 1000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.8);
-            justify-content: center;
-            align-items: center;
-        }
-        .zoom img {
-            max-width: 90%;
-            max-height: 90%;
-            object-fit: contain;
-            border-radius: 8px;
-        }
-        /* Styles for the question images */
-        .question img {
-            width: 70%;
-            max-width: 600px;
-            height: auto;
-            cursor: pointer;
-        }
-        /* Popup styles */
         .popup {
             display: none;
             position: fixed;
@@ -162,61 +105,29 @@
             margin-top: 10px;
             text-align: right;
         }
-        /* Styles for the report popup */
-        .report-popup {
-            display: none;
-            position: fixed;
-            z-index: 1002;
-            left: 50%;
-            top: 50%;
-            transform: translate(-50%, -50%);
-            background-color: #fff;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.2);
+        .reset-btn {
+            background-color: #dc3545;
         }
-        .report-popup textarea {
-            width: 100%;
-            height: 100px;
-            margin-top: 10px;
+        .reset-btn:hover {
+            background-color: #c82333;
         }
     </style>
 </head>
 <body>
-    <div class="menu">
-        <i class="fas fa-bars menu-icon" onclick="toggleMenu()"></i>
-        <div class="menu-content" id="menuContent">
-            <a href="https://t.me/neetpw01" target="_blank"><i class="fab fa-telegram"></i> Telegram</a>
-            <a href="path/to/apk" download><i class="fas fa-download"></i> Download APK</a>
-            <button onclick="shareLink()"><i class="fas fa-share"></i> Share</button>
-        </div>
-    </div>
-
     <h1 id="quizSubject"></h1>
     <div class="quiz-container">
         <form id="quizForm"></form>
         <button id="submitBtn">Submit Answers</button>
+        <button class="reset-btn" id="resetBtn">Reset Quiz</button>
         <div id="result" class="result">
             <h2>Your Results</h2>
             <p id="resultSummary"></p>
-            <button id="viewDetailBtn" style="display: none;">View Details</button>
         </div>
     </div>
 
     <footer id="footer"></footer>
 
-    <div id="zoomImage" class="zoom" onclick="closeZoom()">
-        <img id="zoomedImg" alt="Zoomed Image">
-    </div>
-
-    <div id="subjectPopup" class="popup">
-        <div class="popup-header">All Selected Subjects</div>
-        <div id="allSubjects"></div>
-        <div class="popup-close" onclick="closePopup()">Close</div>
-    </div>
-
-    <!-- Report Popup -->
-    <div id="reportPopup" class="report-popup">
+    <div id="reportPopup" class="popup">
         <div class="popup-header">Report Question</div>
         <textarea id="reportText" placeholder="Enter your report here..."></textarea>
         <button id="submitReportBtn">Submit Report</button>
@@ -242,70 +153,68 @@
         auth.onAuthStateChanged(user => {
             if (user) {
                 document.getElementById('footer').innerHTML = `Logged in as: <strong>${user.email}</strong>`;
-                fetchAttemptedExams(user.uid);
                 fetchSubjects();
+                loadQuiz();
             } else {
                 window.location.href = 'login.html';
             }
         });
 
         const urlParams = new URLSearchParams(window.location.search);
-        const subjects = urlParams.get('subjects').split(','); // Get multiple subjects
+        const subjects = urlParams.get('subjects').split(',');
         const numQuestions = parseInt(urlParams.get('numQuestions'));
         let selectedQuestions = [];
-        let examID = "";
         let userAnswers = [];
+        let reportedQuestions = new Set(); // To keep track of reported questions
 
-        // Show only the first two subjects and an "etc." link if more than two
-        const displayedSubjects = subjects.slice(0, 2);
-        document.getElementById('quizSubject').innerText = `Subjects: ${displayedSubjects.join(', ')}`;
-        if (subjects.length > 2) {
-            document.getElementById('quizSubject').innerHTML += `... <span onclick="showAllSubjects()" style="color: blue; cursor: pointer;">etc.</span>`;
+        document.getElementById('quizSubject').innerText = `Subjects: ${subjects.join(', ')}`;
+
+        function loadQuiz() {
+            database.ref('quizzes').once('value').then(snapshot => {
+                const questions = [];
+                snapshot.forEach(childSnapshot => {
+                    const quizData = childSnapshot.val();
+                    if (subjects.includes(quizData.subjectName)) {
+                        questions.push({
+                            question: quizData.question || "",
+                            options: quizData.options,
+                            answer: parseInt(quizData.correctOption),
+                            explanation: quizData.explanation || "No explanation provided.",
+                            id: childSnapshot.key
+                        });
+                    }
+                });
+
+                selectedQuestions = questions.sort(() => 0.5 - Math.random()).slice(0, numQuestions);
+                const quizForm = document.getElementById('quizForm');
+                selectedQuestions.forEach((q, index) => {
+                    quizForm.innerHTML += `
+                        <div class="question">
+                            <strong>${index + 1}. ${q.question}</strong>
+                            <div class="report-indicator" id="report-indicator-${index}" style="display: none;">Reported</div>
+                            ${q.options.map((opt, i) => `
+                                <label>
+                                    <input type="radio" name="question${index}" value="${i + 1}"> ${opt}
+                                </label>
+                            `).join('')}
+                            <button class="report-btn" onclick="openReportPopup('${q.id}', ${index})">
+                                <i class="fas fa-exclamation-triangle"></i> Report
+                            </button>
+                        </div>
+                    `;
+                });
+
+                document.getElementById('submitBtn').onclick = function(event) {
+                    event.preventDefault();
+                    userAnswers = getUserAnswers(selectedQuestions);
+                    showResults(selectedQuestions, userAnswers);
+                };
+
+                document.getElementById('resetBtn').onclick = function() {
+                    resetQuiz();
+                };
+            });
         }
-
-        // Fetch questions based on multiple subjects
-        database.ref('quizzes').once('value').then(snapshot => {
-            const questions = [];
-            snapshot.forEach(childSnapshot => {
-                const quizData = childSnapshot.val();
-                if (subjects.includes(quizData.subjectName)) {
-                    questions.push({
-                        question: quizData.question || "",
-                        options: quizData.options,
-                        answer: parseInt(quizData.correctOption),
-                        explanation: quizData.explanation || "No explanation provided.",
-                        imageUrl: quizData.imageUrl || null,
-                        id: childSnapshot.key
-                    });
-                }
-            });
-
-            selectedQuestions = questions.sort(() => 0.5 - Math.random()).slice(0, numQuestions);
-
-            const quizForm = document.getElementById('quizForm');
-            selectedQuestions.forEach((q, index) => {
-                quizForm.innerHTML += `
-                    <div class="question">
-                        <strong>${index + 1}. ${q.question ? q.question : '<img src="' + q.imageUrl + '" alt="Question Image" onclick="zoomImage(\'' + q.imageUrl + '\')">'} </strong>
-                        ${q.options.map((opt, i) => `
-                            <label>
-                                <input type="radio" name="question${index}" value="${i + 1}"> ${opt}
-                            </label>
-                        `).join('')}
-                        <button class="report-btn" onclick="openReportPopup('${q.id}')">
-                            <i class="fas fa-exclamation-triangle"></i> Report
-                        </button>
-                    </div>
-                `;
-            });
-
-            document.getElementById('submitBtn').onclick = function(event) {
-                event.preventDefault();
-                userAnswers = getUserAnswers(selectedQuestions);
-                const score = calculateResults(selectedQuestions, userAnswers);
-                showResults(selectedQuestions, userAnswers, score);
-            };
-        });
 
         function getUserAnswers(questions) {
             return questions.map((_, index) => {
@@ -314,116 +223,40 @@
             });
         }
 
-        function calculateResults(questions, userAnswers) {
-            return questions.reduce((score, q, index) => {
-                return score + (userAnswers[index] === q.answer ? 1 : 0);
-            }, 0);
-        }
-
-        function showResults(questions, userAnswers, score) {
+        function showResults(questions, userAnswers) {
             const total = questions.length;
             const correct = questions.filter((q, index) => userAnswers[index] === q.answer).length;
-            const incorrect = total - correct;
-            const missed = userAnswers.filter(answer => answer === null).length;
             const percentage = ((correct / total) * 100).toFixed(2);
 
             document.getElementById('resultSummary').innerHTML = `
                 <p>Total Questions: ${total}</p>
                 <p>Correct: <span class="correct">${correct}</span></p>
-                <p>Incorrect: <span class="incorrect">${incorrect}</span></p>
-                <p>Missed: ${missed}</p>
-                <p>Total Score: ${score} out of ${total} (${percentage}%)</p>
+                <p>Total Score: ${correct} out of ${total} (${percentage}%)</p>
             `;
-
-            saveQuiz(questions, userAnswers, score);
 
             document.getElementById('quizForm').style.display = 'none';
             document.getElementById('submitBtn').style.display = 'none';
+            document.getElementById('resetBtn').style.display = 'none';
             document.getElementById('result').style.display = 'block';
-            document.getElementById('viewDetailBtn').style.display = 'inline';
         }
 
-        function saveQuiz(questions, userAnswers, score) {
-            const user = auth.currentUser;
-            if (!user) {
-                alert("User not authenticated.");
-                return;
-            }
-
-            const date = new Date();
-            const dateString = date.toISOString().split('T')[0];
-            const timeString = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            examID = `${dateString}-quiz-${date.getTime()}`;
-
-            const subjectName = `Conducted on: ${dateString}, at ${timeString}`;
-
-            const examData = {
-                examID,
-                subject: subjectName,
-                date: dateString,
-                score,
-                email: user.email,
-                userAnswers,
-                questions: questions.map(q => ({
-                    id: q.id,
-                    question: q.question,
-                    options: q.options,
-                    correctAnswer: q.answer,
-                    explanation: q.explanation,
-                    imageUrl: q.imageUrl
-                }))
-            };
-
-            database.ref(`users/${user.uid}/exams/${examID}`).set(examData)
-                .then(() => {
-                    console.log(`Quiz saved successfully with ID: ${examID}`);
-                })
-                .catch(error => {
-                    console.error('Error saving quiz:', error);
-                });
+        function resetQuiz() {
+            document.getElementById('quizForm').style.display = 'block';
+            document.getElementById('submitBtn').style.display = 'block';
+            document.getElementById('resetBtn').style.display = 'block';
+            document.getElementById('result').style.display = 'none';
+            document.getElementById('resultSummary').innerHTML = '';
+            userAnswers = [];
+            reportedQuestions.clear();
+            selectedQuestions.forEach((_, index) => {
+                document.getElementById(`report-indicator-${index}`).style.display = 'none';
+            });
         }
 
-        document.getElementById('viewDetailBtn').onclick = function() {
-            window.location.href = `detail.html?examID=${examID}`;
-        };
-
-        function toggleMenu() {
-            const menuContent = document.getElementById('menuContent');
-            menuContent.style.display = menuContent.style.display === 'block' ? 'none' : 'block';
-        }
-
-        function shareLink() {
-            const shareText = 'Check out my quiz results!';
-            navigator.share({
-                title: 'Quiz Results',
-                text: shareText,
-                url: window.location.href
-            }).catch(console.error);
-        }
-
-        function zoomImage(imageUrl) {
-            const zoomImage = document.getElementById('zoomedImg');
-            zoomImage.src = imageUrl;
-            document.getElementById('zoomImage').style.display = 'flex';
-        }
-
-        function closeZoom() {
-            document.getElementById('zoomImage').style.display = 'none';
-        }
-
-        function showAllSubjects() {
-            document.getElementById('allSubjects').innerText = subjects.join(', ');
-            document.getElementById('subjectPopup').style.display = 'block';
-        }
-
-        function closePopup() {
-            document.getElementById('subjectPopup').style.display = 'none';
-        }
-
-        function openReportPopup(questionId) {
+        function openReportPopup(questionId, index) {
             document.getElementById('reportPopup').style.display = 'block';
             document.getElementById('submitReportBtn').onclick = function() {
-                submitReport(questionId);
+                submitReport(questionId, index);
             };
         }
 
@@ -432,7 +265,7 @@
             document.getElementById('reportText').value = ""; // Clear the text area
         }
 
-        function submitReport(questionId) {
+        function submitReport(questionId, index) {
             const reportText = document.getElementById('reportText').value;
             const user = auth.currentUser;
             if (!user) {
@@ -450,6 +283,8 @@
             database.ref(`reports/${questionId}`).push(reportData)
                 .then(() => {
                     alert("Report submitted successfully!");
+                    reportedQuestions.add(questionId);
+                    document.getElementById(`report-indicator-${index}`).style.display = 'block';
                     closeReportPopup();
                 })
                 .catch(error => {
