@@ -10,7 +10,45 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
-        /* Your existing styles here... */
+        /* Basic styles */
+        body {
+            font-family: Arial, sans-serif;
+        }
+        .menu {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 1000;
+        }
+        .menu-icon {
+            cursor: pointer;
+            font-size: 24px;
+            color: #333;
+        }
+        .menu-content {
+            display: none;
+            position: absolute;
+            background-color: #fff;
+            min-width: 250px;
+            border-radius: 8px;
+            box-shadow: 0px 8px 16px rgba(0, 0, 0, 0.2);
+            z-index: 1;
+            padding: 15px;
+        }
+        .menu-content a, .menu-content button {
+            color: black;
+            padding: 10px 15px;
+            text-decoration: none;
+            display: block;
+            background: none;
+            text-align: left;
+            border-radius: 5px;
+            transition: background 0.3s;
+        }
+        .menu-content a:hover, .menu-content button:hover {
+            background: #f0f0f0;
+        }
+
         /* Additional styles for report feature */
         .report-popup {
             display: none;
@@ -40,9 +78,16 @@
     <div class="menu">
         <i class="fas fa-bars menu-icon" onclick="toggleMenu()"></i>
         <div class="menu-content" id="menuContent">
+            <div class="profile" id="profileSection">
+                <div id="profilePicContainer">
+                    <img id="profilePic" src="" alt="Profile Picture" style="display:none;">
+                    <i class="fas fa-user-circle default-icon" id="defaultIcon" style="display: none;"></i>
+                </div>
+                <span id="profileName">Guest</span>
+            </div>
             <a href="https://t.me/neetpw01" target="_blank"><i class="fab fa-telegram"></i> Telegram</a>
             <a href="path/to/apk" download><i class="fas fa-download"></i> Download APK</a>
-            <button onclick="shareLink()"><i class="fas fa-share"></i> Share</button>
+            <button class="share-button" onclick="shareLink()"><i class="fas fa-share"></i> Share</button>
         </div>
     </div>
 
@@ -50,7 +95,7 @@
     <div class="quiz-container">
         <form id="quizForm"></form>
         <button id="submitBtn">Submit Answers</button>
-        <div id="result" class="result">
+        <div id="result" class="result" style="display: none;">
             <h2>Your Results</h2>
             <p id="resultSummary"></p>
             <button id="viewDetailBtn" style="display: none;">View Details</button>
