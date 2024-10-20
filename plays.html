@@ -10,7 +10,6 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
-        /* Your existing styles here... */
         body {
             font-family: 'Arial', sans-serif;
             margin: 0;
@@ -135,10 +134,10 @@
         }
         /* Styles for the question images */
         .question img {
-            width: 70%; /* Adjust this value to make the images smaller */
-            max-width: 600px; /* Maximum width of the images */
-            height: auto; /* Maintain aspect ratio */
-            cursor: pointer; /* Indicate clickable images */
+            width: 70%;
+            max-width: 600px;
+            height: auto;
+            cursor: pointer;
         }
         /* Popup styles */
         .popup {
@@ -195,6 +194,7 @@
             <a href="https://t.me/neetpw01" target="_blank"><i class="fab fa-telegram"></i> Telegram</a>
             <a href="path/to/apk" download><i class="fas fa-download"></i> Download APK</a>
             <button onclick="shareLink()"><i class="fas fa-share"></i> Share</button>
+            <div id="userEmail" style="padding: 12px;">Logged in as: <strong></strong></div>
         </div>
     </div>
 
@@ -247,7 +247,7 @@
 
         auth.onAuthStateChanged(user => {
             if (user) {
-                document.getElementById('footer').innerHTML = `Logged in as: <strong>${user.email}</strong>`;
+                document.getElementById('userEmail').querySelector('strong').innerText = user.email;
                 fetchAttemptedExams(user.uid);
                 fetchSubjects();
             } else {
