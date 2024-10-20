@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Questions and Reports</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        h2 {
+            color: #007BFF;
+            margin-top: 20px;
+            border-bottom: 2px solid #007BFF;
+            padding-bottom: 10px;
+        }
+        .question-item, .report-item {
+            background: white;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        .edit-question input {
+            margin: 5px 0;
+            width: calc(100% - 20px);
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        button {
+            padding: 10px;
+            background: #007BFF;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .remove-btn {
+            background: red;
+        }
+        .remove-btn:hover {
+            background: darkred;
+        }
+        select, input[type="text"], input[type="number"] {
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            width: calc(100% - 20px);
+            margin-bottom: 20px;
+        }
+        .report-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .report-text {
+            flex: 1;
+            margin-right: 10px;
+        }
+        .hidden {
+            display: none;
+        }
+        #searchInput {
+            width: 100%;
+            margin-bottom: 20px;
+        }
+        .admin-message {
+            text-align: center;
+            color: red;
+            font-weight: bold;
+            margin-top: 50px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Edit Questions and Reports</h1>
+    
+    <div id="adminPanel" class="hidden">
+        <h2>Select Subject</h2>
+        <select id="subjectSelect" onchange="fetchQuestions()"></select>
+
+        <input type="text" id="searchInput" placeholder="Search questions or question IDs" oninput="searchQuestions()" />
+
+        <div id="questionsList"></div>
+        <button id="viewMoreBtn" class="hidden" onclick="viewMore()">View More</button>
+
+        <h2>Reports</h2>
+        <div id="reportsList"></div>
+    </div>
+
+    <div id="notAuthorized" class="admin-message">You are not authorized to access this section.</div>
+
+    <script src="https://www.gstatic.com/firebasejs/7.20.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/7.20.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/7.20.0/firebase-database.js"></script>
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyDIWtVfoGIWQoRVe36v6g6S3slTRRYUAgk",
+            authDomain: "quizes-3028d.firebaseapp.com",
+            databaseURL: "https://quizes-3028d-default-rtdb.firebaseio.com",
+            projectId: "quizes-3028d",
+            storageBucket: "quizes-3028d.appspot.com",
+            messagingSenderId: "624591251031",
+            appId: "1:624591251031:web:e093472f24fdeb29fc2512",
+            measurementId: "G-QMZK5Y6769"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+        let questionsData = [];
+        let displayedQuestionsCount = 3;
+        const adminEmail = 'challawaheed@gmail.com';
+
+        // Check if user is admin
+        firebase.auth().onAuthStateChanged(user => {
+            if (user) {
+                if (user.email === adminEmail) {
+                    document.getElementById('adminPanel').classList.remove('hidden');
+                    fetchSubjects();
+                } else {
+                    document.getElementById('notAuthorized').classList.remove('hidden');
+                }
+            } else {
+                document.getElementById('notAuthorized').classList.remove('hidden');
+            }
+        });
+
+        function fetchSubjects() {
+            const subjectSelect = document.getElementById('subjectSelect');
+            database.ref('quizzes').once('value').then(snapshot => {
+                const subjects = new Set();
+                snapshot.forEach(childSnapshot => {
+                    const quizData = childSnapshot.val();
+                    subjects.add(quizData.subjectName);
+                });
+
+                subjectSelect.innerHTML = '<option value="">Select Subject</option>';
+                subjects.forEach(subject => {
+                    const option = document.createElement('option');
+                    option.value = subject;
+                    option.textContent = subject;
+                    subjectSelect.appendChild(option);
+                });
+            });
+        }
+
+        function fetchQuestions() {
+            const subject = document.getElementById('subjectSelect').value;
+            questionsData = []; // Reset questionsData
+            const questionsList = document.getElementById('questionsList');
+            questionsList.innerHTML = '';
+            displayedQuestionsCount = 3;
+
+            database.ref('quizzes').once('value').then(snapshot => {
+                snapshot.forEach(childSnapshot => {
+                    const quizData = childSnapshot.val();
+                    questionsData.push({ id: childSnapshot.key, ...quizData }); // Store ID with data
+                });
+                displayQuestions(); // Display all questions initially
+            });
+            fetchReports();
+        }
+
+        function displayQuestions() {
+            const questionsList = document.getElementById('questionsList');
+            const viewMoreBtn = document.getElementById('viewMoreBtn');
+            questionsList.innerHTML = '';
+
+            const questionsToDisplay = questionsData.slice(0, displayedQuestionsCount);
+            questionsToDisplay.forEach(quizData => {
+                const questionItem = document.createElement('div');
+                questionItem.className = 'question-item';
+
+                questionItem.innerHTML = `
+                    <strong>Question ID:</strong> ${quizData.id}<br>
+                    <div class="edit-question">
+                        <input type="text" placeholder="Question" value="${quizData.question || ''}" onchange="updateQuestion('${quizData.id}', 'question', this.value)" />
+                        <div>
+                            <strong>Options:</strong>
+                            ${quizData.options.map((opt, index) => `
+                                <input type="text" value="${opt}" onchange="updateQuestion('${quizData.id}', 'options', this.value, ${index})" />
+                            `).join('')}
+                        </div>
+                        <input type="number" placeholder="Correct Option (1-indexed)" value="${quizData.correctOption || ''}" onchange="updateQuestion('${quizData.id}', 'correctOption', this.value)" />
+                        <input type="text" placeholder="Explanation" value="${quizData.explanation || ''}" onchange="updateQuestion('${quizData.id}', 'explanation', this.value)" />
+                        <input type="text" placeholder="Image URL" value="${quizData.imageUrl || ''}" onchange="updateQuestion('${quizData.id}', 'imageUrl', this.value)" />
+                        <button class="remove-btn" onclick="removeQuestion('${quizData.id}')">Remove</button>
+                    </div>
+                `;
+
+                questionsList.appendChild(questionItem);
+            });
+
+            viewMoreBtn.className = displayedQuestionsCount < questionsData.length ? '' : 'hidden';
+        }
+
+        function viewMore() {
+            displayedQuestionsCount += 3;
+            displayQuestions();
+        }
+
+        function searchQuestions() {
+            const query = document.getElementById('searchInput').value.toLowerCase();
+            const filteredQuestions = questionsData.filter(quizData =>
+                quizData.question.toLowerCase().includes(query) || quizData.id.toLowerCase().includes(query)
+            );
+
+            displayedQuestionsCount = filteredQuestions.length; // Display all matching questions
+            displayQuestions(filteredQuestions);
+        }
+
+        function updateQuestion(questionId, field, newValue, index = null) {
+            const updateData = {};
+            if (field === 'options' && index !== null) {
+                database.ref(`quizzes/${questionId}`).once('value').then(snapshot => {
+                    const options = snapshot.val().options;
+                    options[index] = newValue; // Update the specific option
+                    updateData.options = options;
+                    database.ref(`quizzes/${questionId}`).update(updateData);
+                });
+            } else {
+                updateData[field] = newValue;
+                database.ref(`quizzes/${questionId}`).update(updateData);
+            }
+        }
+
+        function fetchReports() {
+            const reportsList = document.getElementById('reportsList');
+            reportsList.innerHTML = '';
+
+            database.ref('reports').once('value').then(snapshot => {
+                snapshot.forEach(childSnapshot => {
+                    const reportData = childSnapshot.val();
+                    const reportItem = document.createElement('div');
+                    reportItem.className = 'report-item';
+                    reportItem.innerHTML = `
+                        <div class="report-text">
+                            <strong>Question ID:</strong> <a href="#" onclick="fetchAndEditQuestion('${reportData.questionId}')">${reportData.questionId}</a><br>
+                            <strong>Reported by:</strong> ${reportData.reportedBy}<br>
+                            <strong>Report Text:</strong> ${reportData.reportText}
+                        </div>
+                        <button class="remove-btn" onclick="removeReport('${childSnapshot.key}')">Remove</button>
+                    `;
+                    reportsList.appendChild(reportItem);
+                });
+            });
+        }
+
+        function fetchAndEditQuestion(questionId) {
+            database.ref(`quizzes/${questionId}`).once('value').then(snapshot => {
+                const quizData = snapshot.val();
+                if (quizData) {
+                    const questionsList = document.getElementById('questionsList');
+                    questionsList.innerHTML = `
+                        <div class="question-item">
+                            <strong>Edit Question:</strong><br>
+                            <div class="edit-question">
+                                <input type="text" placeholder="Question" value="${quizData.question || ''}" onchange="updateQuestion('${questionId}', 'question', this.value)" />
+                                <div>
+                                    <strong>Options:</strong>
+                                    ${quizData.options.map((opt, index) => `
+                                        <input type="text" value="${opt}" onchange="updateQuestion('${questionId}', 'options', this.value, ${index})" />
+                                    `).join('')}
+                                </div>
+                                <input type="number" placeholder="Correct Option (1-indexed)" value="${quizData.correctOption || ''}" onchange="updateQuestion('${questionId}', 'correctOption', this.value)" />
+                                <input type="text" placeholder="Explanation" value="${quizData.explanation || ''}" onchange="updateQuestion('${questionId}', 'explanation', this.value)" />
+                                <input type="text" placeholder="Image URL" value="${quizData.imageUrl || ''}" onchange="updateQuestion('${questionId}', 'imageUrl', this.value)" />
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    alert("Question not found.");
+                }
+            });
+        }
+
+        function removeReport(reportId) {
+            database.ref(`reports/${reportId}`).remove()
+                .then(() => {
+                    fetchReports();
+                    alert("Report removed successfully.");
+                })
+                .catch(error => {
+                    console.error("Error removing report:", error);
+                });
+        }
+
+        function removeQuestion(questionId) {
+            database.ref(`quizzes/${questionId}`).remove()
+                .then(() => {
+                    fetchQuestions();
+                    alert("Question removed successfully.");
+                })
+                .catch(error => {
+                    console.error("Error removing question:", error);
+                });
+        }
+
+        // Initialize
+        fetchSubjects();
+    </script>
+</body>
+</html>
