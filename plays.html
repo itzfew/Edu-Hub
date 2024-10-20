@@ -43,6 +43,7 @@
             right: 10px;
             color: red;
             font-weight: bold;
+            display: none; /* Initially hidden */
         }
         label {
             display: block;
@@ -111,6 +112,11 @@
         .reset-btn:hover {
             background-color: #c82333;
         }
+        textarea {
+            width: 100%;
+            height: 60px;
+            margin-bottom: 10px;
+        }
     </style>
 </head>
 <body>
@@ -129,8 +135,8 @@
 
     <div id="reportPopup" class="popup">
         <div class="popup-header">Report Question</div>
-        <textarea id="reportText" placeholder="Enter your report here..."></textarea>
-        <button id="submitReportBtn">Submit Report</button>
+        <textarea id="reportText" placeholder="Enter your detailed report here..."></textarea>
+        <button id="submitReportBtn">Send Report</button>
         <div class="popup-close" onclick="closeReportPopup()">Close</div>
     </div>
 
@@ -153,7 +159,6 @@
         auth.onAuthStateChanged(user => {
             if (user) {
                 document.getElementById('footer').innerHTML = `Logged in as: <strong>${user.email}</strong>`;
-                fetchSubjects();
                 loadQuiz();
             } else {
                 window.location.href = 'login.html';
@@ -165,7 +170,6 @@
         const numQuestions = parseInt(urlParams.get('numQuestions'));
         let selectedQuestions = [];
         let userAnswers = [];
-        let reportedQuestions = new Set(); // To keep track of reported questions
 
         document.getElementById('quizSubject').innerText = `Subjects: ${subjects.join(', ')}`;
 
@@ -191,7 +195,7 @@
                     quizForm.innerHTML += `
                         <div class="question">
                             <strong>${index + 1}. ${q.question}</strong>
-                            <div class="report-indicator" id="report-indicator-${index}" style="display: none;">Reported</div>
+                            <div class="report-indicator" id="report-indicator-${index}">Reported</div>
                             ${q.options.map((opt, i) => `
                                 <label>
                                     <input type="radio" name="question${index}" value="${i + 1}"> ${opt}
@@ -247,7 +251,6 @@
             document.getElementById('result').style.display = 'none';
             document.getElementById('resultSummary').innerHTML = '';
             userAnswers = [];
-            reportedQuestions.clear();
             selectedQuestions.forEach((_, index) => {
                 document.getElementById(`report-indicator-${index}`).style.display = 'none';
             });
@@ -283,7 +286,6 @@
             database.ref(`reports/${questionId}`).push(reportData)
                 .then(() => {
                     alert("Report submitted successfully!");
-                    reportedQuestions.add(questionId);
                     document.getElementById(`report-indicator-${index}`).style.display = 'block';
                     closeReportPopup();
                 })
