@@ -15,6 +15,7 @@
             align-items: center;
             height: 100vh;
             margin: 0;
+            flex-direction: column;
         }
 
         .container {
@@ -105,15 +106,31 @@
         }
 
         .profile {
-            margin-top: 20px;
             display: none;
-            text-align: left;
+            text-align: center;
+            margin-bottom: 20px;
         }
 
         .profile img {
-            width: 50px;
+            width: 70px;
             border-radius: 50%;
-            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+
+        .logout-btn {
+            background-color: #dc3545;
+        }
+
+        .logout-btn:hover {
+            background-color: #c82333;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            max-width: 400px;
+            margin-bottom: 20px;
         }
     </style>
 </head>
@@ -134,10 +151,16 @@
         <button id="googleLoginBtn" style="background-color: #db4437;"><i class="fab fa-google"></i> Sign in with Google</button>
         <div class="forgot-password" id="forgotPassword">Forgot Password?</div>
         <div id="message"></div>
-        <div class="profile" id="profile">
-            <img id="profilePic" src="" alt="Profile Picture">
-            <span id="profileName"></span> (<span id="profileEmail"></span>)
+    </div>
+
+    <div class="container profile" id="profileContainer">
+        <div class="header">
+            <div></div>
+            <button class="logout-btn" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Logout</button>
         </div>
+        <img id="profilePic" src="" alt="Profile Picture">
+        <h2 id="profileName">User</h2>
+        <p id="profileEmail">No email available</p>
     </div>
 
     <script src="https://www.gstatic.com/firebasejs/7.20.0/firebase-app.js"></script>
@@ -163,13 +186,14 @@
             if (user) {
                 // User is signed in, show profile information
                 document.getElementById('loginContainer').style.display = 'none';
-                document.getElementById('profile').style.display = 'block';
+                document.getElementById('profileContainer').style.display = 'block';
                 document.getElementById('profileName').innerText = user.displayName || 'User';
                 document.getElementById('profileEmail').innerText = user.email || 'No email available';
-                document.getElementById('profilePic').src = user.photoURL || 'https://via.placeholder.com/50';
+                document.getElementById('profilePic').src = user.photoURL || 'https://via.placeholder.com/70';
             } else {
                 // User is not signed in, show the login form
                 document.getElementById('loginContainer').style.display = 'block';
+                document.getElementById('profileContainer').style.display = 'none';
             }
         });
 
@@ -199,7 +223,7 @@
 
             auth.createUserWithEmailAndPassword(email, password)
                 .then(() => {
-                    showMessage("Sign up successful! Redirecting...", 'success');
+                    showMessage("Sign up successful! Please log in.", 'success');
                 })
                 .catch(error => {
                     showMessage(error.message, 'error');
@@ -220,6 +244,14 @@
                 .catch(error => {
                     showMessage(error.message, 'error');
                 });
+        };
+
+        document.getElementById('logoutBtn').onclick = function() {
+            auth.signOut().then(() => {
+                showMessage("Logged out successfully!", 'success');
+            }).catch(error => {
+                showMessage(error.message, 'error');
+            });
         };
 
         document.getElementById('forgotPassword').onclick = function() {
