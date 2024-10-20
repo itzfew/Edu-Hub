@@ -11,7 +11,63 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
         body {
-            font-family: Arial, sans-serif;
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f4;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .quiz-container {
+            background-color: #fff;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+        .question {
+            margin: 20px 0;
+            padding: 15px;
+            border-bottom: 1px solid #ddd;
+        }
+        label {
+            display: block;
+            margin: 10px 0;
+            cursor: pointer;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 20px;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .result {
+            display: none;
+            margin-top: 20px;
+            padding: 20px;
+            background-color: #f8f9fa;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        .correct {
+            color: green;
+        }
+        .incorrect {
+            color: red;
         }
         .menu {
             position: absolute;
@@ -20,46 +76,48 @@
             z-index: 1000;
         }
         .menu-icon {
-            cursor: pointer;
             font-size: 24px;
+            cursor: pointer;
             color: #333;
         }
         .menu-content {
             display: none;
             position: absolute;
             background-color: #fff;
-            min-width: 250px;
-            border-radius: 8px;
+            min-width: 200px;
             box-shadow: 0px 8px 16px rgba(0, 0, 0, 0.2);
+            border-radius: 5px;
             z-index: 1;
-            padding: 15px;
         }
         .menu-content a, .menu-content button {
             color: black;
-            padding: 10px 15px;
+            padding: 12px 16px;
             text-decoration: none;
             display: block;
+            border: none;
             background: none;
             text-align: left;
-            border-radius: 5px;
-            transition: background 0.3s;
+            width: 100%;
         }
         .menu-content a:hover, .menu-content button:hover {
-            background: #f0f0f0;
+            background-color: #f1f1f1;
         }
-
-        .quiz-container {
-            margin-top: 60px;
+        footer {
+            text-align: center;
+            color: #333;
+            padding: 10px;
+            margin-top: auto;
         }
-
-        .result {
-            display: none;
+        .separator {
+            height: 2px;
+            background-color: #007bff;
+            margin: 20px 0;
         }
-
+        /* Styles for the zoom feature */
         .zoom {
             display: none;
             position: fixed;
-            z-index: 1001;
+            z-index: 1000;
             left: 0;
             top: 0;
             width: 100%;
@@ -68,12 +126,20 @@
             justify-content: center;
             align-items: center;
         }
-
         .zoom img {
             max-width: 90%;
             max-height: 90%;
+            object-fit: contain;
+            border-radius: 8px;
         }
-
+        /* Styles for the question images */
+        .question img {
+            width: 70%;
+            max-width: 600px;
+            height: auto;
+            cursor: pointer;
+        }
+        /* Popup styles */
         .popup {
             display: none;
             position: fixed;
@@ -96,8 +162,7 @@
             margin-top: 10px;
             text-align: right;
         }
-
-        /* Report Question Popup */
+        /* Additional styles for report feature */
         .report-popup {
             display: none;
             position: fixed;
@@ -126,6 +191,8 @@
     <div class="menu">
         <i class="fas fa-bars menu-icon" onclick="toggleMenu()"></i>
         <div class="menu-content" id="menuContent">
+            <p id="userName" style="padding: 12px; margin: 0;"></p>
+            <a href="profile.html"><i class="fas fa-user"></i> Profile</a>
             <a href="https://t.me/neetpw01" target="_blank"><i class="fab fa-telegram"></i> Telegram</a>
             <a href="path/to/apk" download><i class="fas fa-download"></i> Download APK</a>
             <button onclick="shareLink()"><i class="fas fa-share"></i> Share</button>
@@ -182,6 +249,7 @@
         auth.onAuthStateChanged(user => {
             if (user) {
                 document.getElementById('footer').innerHTML = `Logged in as: <strong>${user.email}</strong>`;
+                document.getElementById('userName').innerText = user.displayName || user.email.split('@')[0];
                 fetchAttemptedExams(user.uid);
                 fetchSubjects();
             } else {
