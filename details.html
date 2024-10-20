@@ -10,26 +10,25 @@
         body {
             font-family: Arial, sans-serif;
             background-color: #f4f4f4;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
             margin: 0;
+            padding: 20px;
+            display: flex;
             flex-direction: column;
+            align-items: center; /* Center horizontally */
         }
 
-        .container {
-            background: white;
+        .form-section, .profile-section {
             padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
             width: 90%;
             max-width: 400px;
             text-align: center;
+            margin-bottom: 20px;
+            background: none; /* Remove background */
         }
 
-        h1 {
+        h1, h3 {
             color: #333;
+            margin-bottom: 20px;
         }
 
         input {
@@ -105,12 +104,6 @@
             text-decoration: underline;
         }
 
-        .profile {
-            display: none;
-            text-align: center;
-            margin-bottom: 20px;
-        }
-
         .profile img {
             width: 70px;
             border-radius: 50%;
@@ -125,17 +118,32 @@
             background-color: #c82333;
         }
 
-        .header {
-            display: flex;
-            justify-content: space-between;
+        .attempts-container {
+            margin-top: 20px;
+            text-align: left;
             width: 100%;
-            max-width: 400px;
-            margin-bottom: 20px;
+        }
+
+        .attempt {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            margin: 5px 0;
+            background-color: #f9f9f9;
+        }
+
+        .attempt a {
+            color: #007bff;
+            text-decoration: none;
+        }
+
+        .attempt a:hover {
+            text-decoration: underline;
         }
     </style>
 </head>
 <body>
-    <div class="container" id="loginContainer">
+    <div class="form-section" id="loginContainer">
         <h1>User Login</h1>
         <div class="input-group">
             <i class="fas fa-envelope"></i>
@@ -153,14 +161,18 @@
         <div id="message"></div>
     </div>
 
-    <div class="container profile" id="profileContainer">
+    <div class="profile-section" id="profileContainer" style="display: none;">
         <div class="header">
-            <div></div>
             <button class="logout-btn" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Logout</button>
         </div>
         <img id="profilePic" src="" alt="Profile Picture">
         <h2 id="profileName">User</h2>
         <p id="profileEmail">No email available</p>
+
+        <div class="attempts-container" id="attemptsContainer">
+            <h3>Attempted Tests</h3>
+            <div id="attemptsList"></div>
+        </div>
     </div>
 
     <script src="https://www.gstatic.com/firebasejs/7.20.0/firebase-app.js"></script>
@@ -180,6 +192,7 @@
 
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
+        const database = firebase.database();
 
         // Check if user is already logged in
         auth.onAuthStateChanged(user => {
@@ -190,6 +203,7 @@
                 document.getElementById('profileName').innerText = user.displayName || 'User';
                 document.getElementById('profileEmail').innerText = user.email || 'No email available';
                 document.getElementById('profilePic').src = user.photoURL || 'https://via.placeholder.com/70';
+                fetchAttemptedTests(user.uid); // Fetch attempted tests for logged-in user
             } else {
                 // User is not signed in, show the login form
                 document.getElementById('loginContainer').style.display = 'block';
@@ -274,6 +288,20 @@
             messageDiv.innerText = message;
             messageDiv.className = type === 'error' ? 'error' : 'success';
             messageDiv.style.display = 'block';
+        }
+
+        function fetchAttemptedTests(userId) {
+            const attemptsList = document.getElementById('attemptsList');
+            database.ref(`users/${userId}/attempts`).once('value').then(snapshot => {
+                attemptsList.innerHTML = ''; // Clear previous attempts
+                snapshot.forEach(childSnapshot => {
+                    const { examID, date, score } = childSnapshot.val();
+                    const attemptItem = document.createElement('div');
+                    attemptItem.className = 'attempt';
+                    attemptItem.innerHTML = `<a href="detail.html?examID=${examID}">Exam ID: ${examID} | Date: ${date} | Score: ${score}</a>`;
+                    attemptsList.appendChild(attemptItem);
+                });
+            });
         }
     </script>
 </body>
