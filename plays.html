@@ -10,137 +10,9 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
-        body {
-            font-family: 'Arial', sans-serif;
-            margin: 0;
-            padding: 20px;
-            background-color: #f4f4f4;
-            display: flex;
-            flex-direction: column;
-            min-height: 100vh;
-        }
-        h1 {
-            text-align: center;
-            color: #333;
-            margin-bottom: 20px;
-        }
-        .quiz-container {
-            background-color: #fff;
-            border-radius: 8px;
-            padding: 20px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-            margin-bottom: 20px;
-        }
-        .question {
-            margin: 20px 0;
-            padding: 15px;
-            border-bottom: 1px solid #ddd;
-        }
-        label {
-            display: block;
-            margin: 10px 0;
-            cursor: pointer;
-        }
-        button {
-            background-color: #007bff;
-            color: white;
-            padding: 10px 20px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 16px;
-            margin-top: 20px;
-            transition: background-color 0.3s;
-        }
-        button:hover {
-            background-color: #0056b3;
-        }
-        .result {
-            display: none;
-            margin-top: 20px;
-            padding: 20px;
-            background-color: #f8f9fa;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-        }
-        .correct {
-            color: green;
-        }
-        .incorrect {
-            color: red;
-        }
-        .menu {
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            z-index: 1000;
-        }
-        .menu-icon {
-            font-size: 24px;
-            cursor: pointer;
-            color: #333;
-        }
-        .menu-content {
-            display: none;
-            position: absolute;
-            background-color: #fff;
-            min-width: 200px;
-            box-shadow: 0px 8px 16px rgba(0, 0, 0, 0.2);
-            border-radius: 5px;
-            z-index: 1;
-        }
-        .menu-content a, .menu-content button {
-            color: black;
-            padding: 12px 16px;
-            text-decoration: none;
-            display: block;
-            border: none;
-            background: none;
-            text-align: left;
-            width: 100%;
-        }
-        .menu-content a:hover, .menu-content button:hover {
-            background-color: #f1f1f1;
-        }
-        footer {
-            text-align: center;
-            color: #333;
-            padding: 10px;
-            margin-top: auto;
-        }
-        .separator {
-            height: 2px;
-            background-color: #007bff;
-            margin: 20px 0;
-        }
-        /* Styles for the zoom feature */
-        .zoom {
-            display: none;
-            position: fixed;
-            z-index: 1000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.8);
-            justify-content: center;
-            align-items: center;
-        }
-        .zoom img {
-            max-width: 90%;
-            max-height: 90%;
-            object-fit: contain;
-            border-radius: 8px;
-        }
-        /* Styles for the question images */
-        .question img {
-            width: 70%;
-            max-width: 600px;
-            height: auto;
-            cursor: pointer;
-        }
-        /* Popup styles */
-        .popup {
+        /* Your existing styles here... */
+        /* Additional styles for report feature */
+        .report-popup {
             display: none;
             position: fixed;
             z-index: 1001;
@@ -152,28 +24,15 @@
             border-radius: 8px;
             box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.2);
         }
-        .popup-header {
+        .report-popup-header {
             font-size: 18px;
             margin-bottom: 10px;
         }
-        .popup-close {
+        .report-popup-close {
             cursor: pointer;
             color: #007bff;
             margin-top: 10px;
             text-align: right;
-        }
-        /* Styles for report popup */
-        #reportPopup {
-            display: none;
-            position: fixed;
-            z-index: 1001;
-            left: 50%;
-            top: 50%;
-            transform: translate(-50%, -50%);
-            background-color: #fff;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.2);
         }
     </style>
 </head>
@@ -210,11 +69,12 @@
         <div class="popup-close" onclick="closePopup()">Close</div>
     </div>
 
-    <div id="reportPopup" class="popup">
-        <div class="popup-header">Report an Issue</div>
-        <input type="text" id="reportInput" placeholder="Describe the problem..." />
-        <div class="popup-close" onclick="closeReportPopup()">Close</div>
+    <!-- Report Question Popup -->
+    <div id="reportPopup" class="report-popup">
+        <div class="report-popup-header">Report Question</div>
+        <textarea id="reportText" placeholder="Please describe the issue..." rows="4" style="width: 100%;"></textarea>
         <button id="submitReportBtn">Submit Report</button>
+        <div class="report-popup-close" onclick="closeReportPopup()">Close</div>
     </div>
 
     <script>
@@ -244,27 +104,36 @@
         });
 
         const urlParams = new URLSearchParams(window.location.search);
-        const subjects = urlParams.get('subjects').split(',');
+        const subjects = urlParams.get('subjects').split(','); 
         const numQuestions = parseInt(urlParams.get('numQuestions'));
         let selectedQuestions = [];
         let examID = "";
         let userAnswers = [];
 
         const displayedSubjects = subjects.slice(0, 2);
-        document.getElementById('quizSubject').innerText = displayedSubjects.join(' & ') + " Quiz";
+        document.getElementById('quizSubject').innerText = `Subjects: ${displayedSubjects.join(', ')}`;
+        if (subjects.length > 2) {
+            document.getElementById('quizSubject').innerHTML += `... <span onclick="showAllSubjects()" style="color: blue; cursor: pointer;">etc.</span>`;
+        }
 
-        const fetchQuestions = async () => {
-            // Fetch questions from Firebase based on subjects
-            const promises = subjects.map(subject => {
-                return database.ref(`questions/${subject}`).once('value');
+        database.ref('quizzes').once('value').then(snapshot => {
+            const questions = [];
+            snapshot.forEach(childSnapshot => {
+                const quizData = childSnapshot.val();
+                if (subjects.includes(quizData.subjectName)) {
+                    questions.push({
+                        question: quizData.question || "",
+                        options: quizData.options,
+                        answer: parseInt(quizData.correctOption),
+                        explanation: quizData.explanation || "No explanation provided.",
+                        imageUrl: quizData.imageUrl || null,
+                        id: childSnapshot.key
+                    });
+                }
             });
-            const snapshots = await Promise.all(promises);
-            const questions = snapshots.flatMap(snapshot => snapshot.val() || []);
-            selectedQuestions = questions.sort(() => 0.5 - Math.random()).slice(0, numQuestions);
-            renderQuestions();
-        };
 
-        const renderQuestions = () => {
+            selectedQuestions = questions.sort(() => 0.5 - Math.random()).slice(0, numQuestions);
+
             const quizForm = document.getElementById('quizForm');
             selectedQuestions.forEach((q, index) => {
                 quizForm.innerHTML += `
@@ -275,101 +144,167 @@
                                 <input type="radio" name="question${index}" value="${i + 1}"> ${opt}
                             </label>
                         `).join('')}
-                        <button onclick="openReportPopup('${q.id}', '${q.question}')"><i class="fas fa-exclamation-triangle"></i> Report</button>
+                        <button type="button" onclick="reportQuestion('${q.id}')">Report Question</button>
                     </div>
                 `;
             });
-        };
 
-        document.getElementById('submitBtn').onclick = function() {
-            userAnswers = [];
-            selectedQuestions.forEach((_, index) => {
-                const selectedOption = document.querySelector(`input[name="question${index}"]:checked`);
-                userAnswers.push(selectedOption ? selectedOption.value : null);
-            });
-            calculateResults();
-        };
+            document.getElementById('submitBtn').onclick = function(event) {
+                event.preventDefault();
+                userAnswers = getUserAnswers(selectedQuestions);
+                const score = calculateResults(selectedQuestions, userAnswers);
+                showResults(selectedQuestions, userAnswers, score);
+            };
+        });
 
-        const calculateResults = () => {
-            // Calculate results logic...
-            document.getElementById('result').style.display = 'block';
-            document.getElementById('resultSummary').innerText = "You scored: X/Y"; // Example
-            document.getElementById('viewDetailBtn').style.display = 'block';
-        };
-
-        const fetchAttemptedExams = (uid) => {
-            database.ref(`attempts/${uid}`).once('value').then(snapshot => {
-                const attempts = snapshot.val() || {};
-                // Process attempts data...
-            });
-        };
-
-        const fetchSubjects = () => {
-            database.ref('subjects').once('value').then(snapshot => {
-                const subjects = snapshot.val() || {};
-                // Process subjects data...
-            });
-        };
-
-        const toggleMenu = () => {
-            const menuContent = document.getElementById('menuContent');
-            menuContent.style.display = menuContent.style.display === 'block' ? 'none' : 'block';
-        };
-
-        const shareLink = () => {
-            // Implement sharing functionality...
-            alert('Link shared!');
-        };
-
-        const zoomImage = (url) => {
-            document.getElementById('zoomedImg').src = url;
-            document.getElementById('zoomImage').style.display = 'flex';
-        };
-
-        const closeZoom = () => {
-            document.getElementById('zoomImage').style.display = 'none';
-        };
-
-        const openReportPopup = (questionId, questionText) => {
-            currentQuestionId = questionId;
+        function reportQuestion(questionId) {
+            document.getElementById('submitReportBtn').onclick = function() {
+                const reportText = document.getElementById('reportText').value;
+                submitReport(questionId, reportText);
+            };
             document.getElementById('reportPopup').style.display = 'block';
-        };
+        }
 
-        const closeReportPopup = () => {
-            document.getElementById('reportPopup').style.display = 'none';
-        };
-
-        document.getElementById('submitReportBtn').onclick = function() {
-            const reportText = document.getElementById('reportInput').value;
-            if (reportText.trim() === '') {
-                alert('Please enter a description of the problem.');
+        function submitReport(questionId, reportText) {
+            if (reportText.trim() === "") {
+                alert("Please provide a report.");
                 return;
             }
 
+            const reportData = {
+                questionId,
+                reportText,
+                reportedBy: auth.currentUser.email,
+                timestamp: firebase.database.ServerValue.TIMESTAMP
+            };
+
+            database.ref('reports').push(reportData)
+                .then(() => {
+                    alert("Report submitted successfully.");
+                    closeReportPopup();
+                })
+                .catch(error => {
+                    console.error('Error submitting report:', error);
+                });
+        }
+
+        function closeReportPopup() {
+            document.getElementById('reportPopup').style.display = 'none';
+            document.getElementById('reportText').value = ""; // Clear the textarea
+        }
+
+        function getUserAnswers(questions) {
+            return questions.map((_, index) => {
+                const selectedOption = document.querySelector(`input[name="question${index}"]:checked`);
+                return selectedOption ? parseInt(selectedOption.value) : null;
+            });
+        }
+
+        function calculateResults(questions, userAnswers) {
+            return questions.reduce((score, q, index) => {
+                return score + (userAnswers[index] === q.answer ? 1 : 0);
+            }, 0);
+        }
+
+        function showResults(questions, userAnswers, score) {
+            const total = questions.length;
+            const correct = questions.filter((q, index) => userAnswers[index] === q.answer).length;
+            const incorrect = total - correct;
+            const missed = userAnswers.filter(answer => answer === null).length;
+            const percentage = ((correct / total) * 100).toFixed(2);
+
+            document.getElementById('resultSummary').innerHTML = `
+                <p>Total Questions: ${total}</p>
+                <p>Correct: <span class="correct">${correct}</span></p>
+                <p>Incorrect: <span class="incorrect">${incorrect}</span></p>
+                <p>Missed: ${missed}</p>
+                <p>Total Score: ${score} out of ${total} (${percentage}%)</p>
+            `;
+
+            saveQuiz(questions, userAnswers, score);
+
+            document.getElementById('quizForm').style.display = 'none';
+            document.getElementById('submitBtn').style.display = 'none';
+            document.getElementById('result').style.display = 'block';
+            document.getElementById('viewDetailBtn').style.display = 'inline';
+        }
+
+        function saveQuiz(questions, userAnswers, score) {
             const user = auth.currentUser;
             if (!user) {
                 alert("User not authenticated.");
                 return;
             }
 
-            const reportData = {
-                questionId: currentQuestionId,
-                reportText,
+            const date = new Date();
+            const dateString = date.toISOString().split('T')[0];
+            const timeString = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            examID = `${dateString}-quiz-${date.getTime()}`;
+
+            const subjectName = `Conducted on: ${dateString}, at ${timeString}`;
+
+            const examData = {
+                examID,
+                subject: subjectName,
+                date: dateString,
+                score,
                 email: user.email,
-                timestamp: new Date().toISOString()
+                userAnswers,
+                questions: questions.map(q => ({
+                    id: q.id,
+                    question: q.question,
+                    options: q.options,
+                    correctAnswer: q.answer,
+                    explanation: q.explanation,
+                    imageUrl: q.imageUrl
+                }))
             };
 
-            database.ref(`reports/${currentQuestionId}`).push(reportData)
+            database.ref(`users/${user.uid}/exams/${examID}`).set(examData)
                 .then(() => {
-                    alert('Report submitted successfully.');
-                    closeReportPopup();
+                    console.log(`Quiz saved successfully with ID: ${examID}`);
                 })
                 .catch(error => {
-                    console.error('Error submitting report:', error);
+                    console.error('Error saving quiz:', error);
                 });
+        }
+
+        document.getElementById('viewDetailBtn').onclick = function() {
+            window.location.href = `detail.html?examID=${examID}`;
         };
 
-        fetchQuestions();
+        function toggleMenu() {
+            const menuContent = document.getElementById('menuContent');
+            menuContent.style.display = menuContent.style.display === 'block' ? 'none' : 'block';
+        }
+
+        function shareLink() {
+            const shareText = 'Check out my quiz results!';
+            navigator.share({
+                title: 'Quiz Results',
+                text: shareText,
+                url: window.location.href
+            }).catch(console.error);
+        }
+
+        function zoomImage(imageUrl) {
+            const zoomImage = document.getElementById('zoomedImg');
+            zoomImage.src = imageUrl;
+            document.getElementById('zoomImage').style.display = 'flex';
+        }
+
+        function closeZoom() {
+            document.getElementById('zoomImage').style.display = 'none';
+        }
+
+        function showAllSubjects() {
+            document.getElementById('allSubjects').innerText = subjects.join(', ');
+            document.getElementById('subjectPopup').style.display = 'block';
+        }
+
+        function closePopup() {
+            document.getElementById('subjectPopup').style.display = 'none';
+        }
     </script>
 </body>
 </html>
