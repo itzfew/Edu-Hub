@@ -10,6 +10,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
+        /* Your existing styles here... */
         body {
             font-family: 'Arial', sans-serif;
             margin: 0;
@@ -134,10 +135,10 @@
         }
         /* Styles for the question images */
         .question img {
-            width: 70%;
-            max-width: 600px;
-            height: auto;
-            cursor: pointer;
+            width: 70%; /* Adjust this value to make the images smaller */
+            max-width: 600px; /* Maximum width of the images */
+            height: auto; /* Maintain aspect ratio */
+            cursor: pointer; /* Indicate clickable images */
         }
         /* Popup styles */
         .popup {
@@ -191,16 +192,9 @@
     <div class="menu">
         <i class="fas fa-bars menu-icon" onclick="toggleMenu()"></i>
         <div class="menu-content" id="menuContent">
-            <div class="profile" id="profileSection">
-                <div id="profilePicContainer">
-                    <img id="profilePic" src="" alt="Profile Picture" style="display:none;">
-                    <i class="fas fa-user-circle default-icon" id="defaultIcon" style="display: none;"></i>
-                </div>
-                <span id="profileName">Guest</span>
-            </div>
             <a href="https://t.me/neetpw01" target="_blank"><i class="fab fa-telegram"></i> Telegram</a>
             <a href="path/to/apk" download><i class="fas fa-download"></i> Download APK</a>
-            <button class="share-button" onclick="shareLink()"><i class="fas fa-share"></i> Share</button>
+            <button onclick="shareLink()"><i class="fas fa-share"></i> Share</button>
         </div>
     </div>
 
@@ -256,28 +250,10 @@
                 document.getElementById('footer').innerHTML = `Logged in as: <strong>${user.email}</strong>`;
                 fetchAttemptedExams(user.uid);
                 fetchSubjects();
-                updateProfile(user);
             } else {
                 window.location.href = 'login.html';
             }
         });
-
-        function updateProfile(user) {
-            const profilePic = document.getElementById('profilePic');
-            const profileName = document.getElementById('profileName');
-            const defaultIcon = document.getElementById('defaultIcon');
-
-            if (user.photoURL) {
-                profilePic.src = user.photoURL;
-                profilePic.style.display = 'block';
-                defaultIcon.style.display = 'none'; // Hide default icon if photo exists
-            } else {
-                profilePic.style.display = 'none'; // Hide profile picture if not available
-                defaultIcon.style.display = 'block'; // Show default icon
-            }
-
-            profileName.innerText = user.displayName || user.email.split('@')[0];
-        }
 
         const urlParams = new URLSearchParams(window.location.search);
         const subjects = urlParams.get('subjects').split(','); 
