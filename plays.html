@@ -191,11 +191,16 @@
     <div class="menu">
         <i class="fas fa-bars menu-icon" onclick="toggleMenu()"></i>
         <div class="menu-content" id="menuContent">
-            <p id="userName" style="padding: 12px; margin: 0;"></p>
-            <a href="profile.html"><i class="fas fa-user"></i> Profile</a>
+            <div class="profile" id="profileSection">
+                <div id="profilePicContainer">
+                    <img id="profilePic" src="" alt="Profile Picture" style="display:none;">
+                    <i class="fas fa-user-circle default-icon" id="defaultIcon" style="display: none;"></i>
+                </div>
+                <span id="profileName">Guest</span>
+            </div>
             <a href="https://t.me/neetpw01" target="_blank"><i class="fab fa-telegram"></i> Telegram</a>
             <a href="path/to/apk" download><i class="fas fa-download"></i> Download APK</a>
-            <button onclick="shareLink()"><i class="fas fa-share"></i> Share</button>
+            <button class="share-button" onclick="shareLink()"><i class="fas fa-share"></i> Share</button>
         </div>
     </div>
 
@@ -249,13 +254,30 @@
         auth.onAuthStateChanged(user => {
             if (user) {
                 document.getElementById('footer').innerHTML = `Logged in as: <strong>${user.email}</strong>`;
-                document.getElementById('userName').innerText = user.displayName || user.email.split('@')[0];
                 fetchAttemptedExams(user.uid);
                 fetchSubjects();
+                updateProfile(user);
             } else {
                 window.location.href = 'login.html';
             }
         });
+
+        function updateProfile(user) {
+            const profilePic = document.getElementById('profilePic');
+            const profileName = document.getElementById('profileName');
+            const defaultIcon = document.getElementById('defaultIcon');
+
+            if (user.photoURL) {
+                profilePic.src = user.photoURL;
+                profilePic.style.display = 'block';
+                defaultIcon.style.display = 'none'; // Hide default icon if photo exists
+            } else {
+                profilePic.style.display = 'none'; // Hide profile picture if not available
+                defaultIcon.style.display = 'block'; // Show default icon
+            }
+
+            profileName.innerText = user.displayName || user.email.split('@')[0];
+        }
 
         const urlParams = new URLSearchParams(window.location.search);
         const subjects = urlParams.get('subjects').split(','); 
