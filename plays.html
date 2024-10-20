@@ -206,6 +206,7 @@
             <h2>Your Results</h2>
             <p id="resultSummary"></p>
             <button id="viewDetailBtn" style="display: none;">View Details</button>
+            <button id="replayBtn" style="display: none;" onclick="replayQuiz()">Replay Quiz</button>
         </div>
     </div>
 
@@ -381,6 +382,7 @@
             document.getElementById('submitBtn').style.display = 'none';
             document.getElementById('result').style.display = 'block';
             document.getElementById('viewDetailBtn').style.display = 'inline';
+            document.getElementById('replayBtn').style.display = 'inline'; // Show replay button
         }
 
         function saveQuiz(questions, userAnswers, score) {
@@ -426,6 +428,14 @@
         document.getElementById('viewDetailBtn').onclick = function() {
             window.location.href = `detail.html?examID=${examID}`;
         };
+
+        function replayQuiz() {
+            const replayParams = new URLSearchParams({
+                subjects: subjects.join(','),
+                numQuestions
+            }).toString();
+            window.location.href = `play.html?${replayParams}`;
+        }
 
         function toggleMenu() {
             const menuContent = document.getElementById('menuContent');
