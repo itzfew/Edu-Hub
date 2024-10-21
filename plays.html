@@ -4,10 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Quiz Play</title>
-    <script src="https://www.gstatic.com/firebasejs/7.20.0/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/7.20.0/firebase-auth.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/7.20.0/firebase-database.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
         body {
             font-family: 'Arial', sans-serif;
@@ -68,155 +64,92 @@
         .incorrect {
             color: red;
         }
-        .explanation {
-            margin-top: 10px;
-            font-size: 14px;
-            color: #555;
-        }
     </style>
 </head>
 <body>
-    <h1 id="quizSubject"></h1>
+    <h1>Quiz</h1>
     <div class="quiz-container">
         <form id="quizForm"></form>
-        <button id="nextBtn" style="display: none;">Next Question</button>
-        <button id="submitBtn" style="display: none;">Submit Answers</button>
+        <button id="nextBtn">Next</button>
         <div id="result" class="result">
             <h2>Your Results</h2>
             <p id="resultSummary"></p>
-            <button id="viewDetailBtn" style="display: none;">View Details</button>
+            <button id="submitBtn" style="display: none;">Submit Answers</button>
         </div>
     </div>
 
     <script>
-        const firebaseConfig = {
-            apiKey: "AIzaSyDIWtVfoGIWQoRVe36v6g6S3slTRRYUAgk",
-            authDomain: "quizes-3028d.firebaseapp.com",
-            databaseURL: "https://quizes-3028d-default-rtdb.firebaseio.com",
-            projectId: "quizes-3028d",
-            storageBucket: "quizes-3028d.appspot.com",
-            messagingSenderId: "624591251031",
-            appId: "1:624591251031:web:e093472f24fdeb29fc2512",
-            measurementId: "G-QMZK5Y6769"
-        };
-
-        firebase.initializeApp(firebaseConfig);
-        const auth = firebase.auth();
-        const database = firebase.database();
+        const questions = [
+            {
+                question: "What is 2 + 2?",
+                options: ["3", "4", "5"],
+                answer: 1,
+                explanation: "2 + 2 equals 4."
+            },
+            {
+                question: "What is the capital of France?",
+                options: ["Berlin", "Madrid", "Paris"],
+                answer: 2,
+                explanation: "The capital of France is Paris."
+            }
+        ];
 
         let currentQuestionIndex = 0;
-        let selectedQuestions = [];
         let userAnswers = [];
 
-        auth.onAuthStateChanged(user => {
-            if (user) {
-                const urlParams = new URLSearchParams(window.location.search);
-                const subjects = urlParams.get('subjects').split(',');
-                const numQuestions = parseInt(urlParams.get('numQuestions'));
-                const displayedSubjects = subjects.slice(0, 2);
-                document.getElementById('quizSubject').innerText = `Subjects: ${displayedSubjects.join(', ')}`;
-                if (subjects.length > 2) {
-                    document.getElementById('quizSubject').innerHTML += `... <span onclick="showAllSubjects()" style="color: blue; cursor: pointer;">etc.</span>`;
-                }
-
-                database.ref('quizzes').once('value').then(snapshot => {
-                    const questions = [];
-                    snapshot.forEach(childSnapshot => {
-                        const quizData = childSnapshot.val();
-                        if (subjects.includes(quizData.subjectName)) {
-                            questions.push({
-                                question: quizData.question || "",
-                                options: quizData.options,
-                                answer: parseInt(quizData.correctOption),
-                                explanation: quizData.explanation || "No explanation provided.",
-                                id: childSnapshot.key
-                            });
-                        }
-                    });
-
-                    selectedQuestions = questions.sort(() => 0.5 - Math.random()).slice(0, numQuestions);
-                    displayQuestion();
-                });
-            } else {
-                window.location.href = 'login.html';
-            }
-        });
-
-        function displayQuestion() {
-            const question = selectedQuestions[currentQuestionIndex];
+        function loadQuestion(index) {
             const quizForm = document.getElementById('quizForm');
-
+            const q = questions[index];
             quizForm.innerHTML = `
                 <div class="question">
-                    <strong>${currentQuestionIndex + 1}. ${question.question}</strong>
-                    ${question.options.map((opt, i) => `
+                    <strong>${index + 1}. ${q.question}</strong>
+                    ${q.options.map((opt, i) => `
                         <label>
-                            <input type="radio" name="question${currentQuestionIndex}" value="${i + 1}"> ${opt}
+                            <input type="radio" name="question${index}" value="${i}"> ${opt}
                         </label>
                     `).join('')}
                 </div>
             `;
-
-            document.getElementById('nextBtn').style.display = 'none';
-            document.getElementById('submitBtn').style.display = 'none';
         }
 
         document.getElementById('nextBtn').onclick = function() {
             const selectedOption = document.querySelector(`input[name="question${currentQuestionIndex}"]:checked`);
             if (selectedOption) {
-                const userAnswer = parseInt(selectedOption.value);
-                userAnswers[currentQuestionIndex] = userAnswer;
-
-                showFeedback(currentQuestionIndex);
-
-                currentQuestionIndex++;
-                if (currentQuestionIndex < selectedQuestions.length) {
-                    displayQuestion();
-                } else {
-                    document.getElementById('submitBtn').style.display = 'block';
-                    document.getElementById('nextBtn').style.display = 'none';
+                userAnswers[currentQuestionIndex] = parseInt(selectedOption.value);
+                if (currentQuestionIndex < questions.length) {
+                    showAnswerFeedback();
                 }
             } else {
-                alert("Please select an answer before proceeding.");
+                alert("Please select an answer.");
             }
         };
 
-        function showFeedback(index) {
-            const question = selectedQuestions[index];
-            const userAnswer = userAnswers[index];
-            const isCorrect = userAnswer === question.answer;
-
-            const resultDiv = document.createElement('div');
-            resultDiv.innerHTML = `
-                <p>${isCorrect ? 'Correct!' : 'Incorrect!'}</p>
-                <p>Selected Answer: ${question.options[userAnswer - 1]}</p>
-                <p>Correct Answer: ${question.options[question.answer - 1]}</p>
-                <p class="explanation">Explanation: ${question.explanation}</p>
+        function showAnswerFeedback() {
+            const feedback = document.createElement('div');
+            const q = questions[currentQuestionIndex];
+            feedback.innerHTML = `
+                <p class="${userAnswers[currentQuestionIndex] === q.answer ? 'correct' : 'incorrect'}">
+                    ${userAnswers[currentQuestionIndex] === q.answer ? 'Correct!' : 'Incorrect!'} ${q.explanation}
+                </p>
             `;
-            document.getElementById('quizForm').appendChild(resultDiv);
-            document.getElementById('nextBtn').style.display = 'block';
+            document.querySelector('.quiz-container').appendChild(feedback);
+            currentQuestionIndex++;
+
+            if (currentQuestionIndex < questions.length) {
+                loadQuestion(currentQuestionIndex);
+            } else {
+                showResults();
+            }
         }
 
-        document.getElementById('submitBtn').onclick = function() {
-            const total = selectedQuestions.length;
-            const correct = userAnswers.filter((ans, index) => ans === selectedQuestions[index].answer).length;
-
-            document.getElementById('resultSummary').innerHTML = `
-                <p>Total Questions: ${total}</p>
-                <p>Correct: <span class="correct">${correct}</span></p>
-                <p>Incorrect: <span class="incorrect">${total - correct}</span></p>
-                <p>Total Score: ${correct} out of ${total}</p>
-            `;
-
-            document.getElementById('quizForm').style.display = 'none';
-            document.getElementById('nextBtn').style.display = 'none';
+        function showResults() {
+            document.getElementById('resultSummary').innerHTML = `You answered ${userAnswers.filter((ans, i) => ans === questions[i].answer).length} out of ${questions.length} questions correctly.`;
             document.getElementById('result').style.display = 'block';
-            document.getElementById('viewDetailBtn').style.display = 'inline';
-        };
-
-        function showAllSubjects() {
-            alert("Subjects: " + selectedQuestions.map(q => q.question).join(', '));
+            document.getElementById('nextBtn').style.display = 'none';
+            document.getElementById('submitBtn').style.display = 'block';
         }
+
+        loadQuestion(currentQuestionIndex);
     </script>
 </body>
 </html>
