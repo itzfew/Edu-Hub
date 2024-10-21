@@ -131,12 +131,6 @@
             object-fit: contain;
             border-radius: 8px;
         }
-        .question img {
-            width: 70%;
-            max-width: 600px;
-            height: auto;
-            cursor: pointer;
-        }
         .popup {
             display: none;
             position: fixed;
@@ -177,10 +171,6 @@
             color: white;
             text-align: center;
         }
-        .answer-feedback {
-            display: none;
-            margin-top: 10px;
-        }
     </style>
 </head>
 <body>
@@ -199,8 +189,8 @@
 
     <h1 id="quizSubject"></h1>
     <div class="quiz-container">
-        <div id="questionContainer"></div>
-        <button id="nextBtn" style="display: none;">Next Question</button>
+        <form id="quizForm"></form>
+        <button id="submitBtn">Submit Answers</button>
         <div id="result" class="result">
             <h2>Your Results</h2>
             <p id="resultSummary"></p>
@@ -229,14 +219,14 @@
 
     <script>
         const firebaseConfig = {
-            apiKey: "AIzaSyDIWtVfoGIWQoRVe36v6g6S3slTRRYUAgk",
-            authDomain: "quizes-3028d.firebaseapp.com",
-            databaseURL: "https://quizes-3028d-default-rtdb.firebaseio.com",
-            projectId: "quizes-3028d",
-            storageBucket: "quizes-3028d.appspot.com",
-            messagingSenderId: "624591251031",
-            appId: "1:624591251031:web:e093472f24fdeb29fc2512",
-            measurementId: "G-QMZK5Y6769"
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+            databaseURL: "https://YOUR_PROJECT_ID.firebaseio.com",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_PROJECT_ID.appspot.com",
+            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+            appId: "YOUR_APP_ID",
+            measurementId: "YOUR_MEASUREMENT_ID"
         };
 
         firebase.initializeApp(firebaseConfig);
@@ -251,11 +241,10 @@
                 const profilePic = document.getElementById('profilePic');
                 if (user.photoURL) {
                     profilePic.style.backgroundImage = `url(${user.photoURL})`;
-                    profilePic.style.backgroundSize = "cover";
-                    profilePic.innerHTML = ''; // Clear icon if photoURL is present
+                    profilePic.style.backgroundSize = 'cover';
+                    profilePic.innerHTML = '';
                 }
 
-                fetchAttemptedExams(user.uid);
                 fetchSubjects();
             } else {
                 window.location.href = 'login.html';
@@ -266,7 +255,6 @@
         const subjects = urlParams.get('subjects').split(','); 
         const numQuestions = parseInt(urlParams.get('numQuestions'));
         let selectedQuestions = [];
-        let currentQuestionIndex = 0;
         let userAnswers = [];
 
         const displayedSubjects = subjects.slice(0, 2);
@@ -292,152 +280,31 @@
             });
 
             selectedQuestions = questions.sort(() => 0.5 - Math.random()).slice(0, numQuestions);
-            displayQuestion();
-        });
 
-        function displayQuestion() {
-            const question = selectedQuestions[currentQuestionIndex];
-            document.getElementById('questionContainer').innerHTML = `
-                <div class="question">
-                    <strong>${currentQuestionIndex + 1}. ${question.question ? question.question : '<img src="' + question.imageUrl + '" alt="Question Image" onclick="zoomImage(\'' + question.imageUrl + '\')">'} </strong>
-                    ${question.options.map((opt, i) => `
-                        <label>
-                            <input type="radio" name="question${currentQuestionIndex}" value="${i + 1}" onchange="showAnswer(${question.answer}, this.value, ${currentQuestionIndex})"> ${opt}
-                        </label>
-                    `).join('')}
-                    <button type="button" onclick="reportQuestion('${question.id}')">
-                        <i class="fas fa-exclamation-triangle" style="color: orange;"></i>
-                    </button>
-                    <div id="feedback${currentQuestionIndex}" class="answer-feedback"></div>
-                </div>
-            `;
-            document.getElementById('nextBtn').style.display = 'none';
-            if (currentQuestionIndex > 0) {
-                document.getElementById('nextBtn').style.display = 'inline';
-            }
-            if (currentQuestionIndex === selectedQuestions.length - 1) {
-                document.getElementById('nextBtn').innerText = 'Submit';
-            }
-        }
+            const quizForm = document.getElementById('quizForm');
+            selectedQuestions.forEach((q, index) => {
+                quizForm.innerHTML += `
+                    <div class="question">
+                        <strong>${index + 1}. ${q.question ? q.question : '<img src="' + q.imageUrl + '" alt="Question Image" onclick="zoomImage(\'' + q.imageUrl + '\')">'} </strong>
+                        ${q.options.map((opt, i) => `
+                            <label>
+                                <input type="radio" name="question${index}" value="${i + 1}"> ${opt}
+                            </label>
+                        `).join('')}
+                        <button type="button" onclick="reportQuestion('${q.id}')">
+                            <i class="fas fa-exclamation-triangle" style="color: orange;"></i>
+                        </button>
+                    </div>
+                `;
+            });
 
-        function showAnswer(correctAnswer, selectedAnswer, index) {
-            const feedback = document.getElementById(`feedback${index}`);
-            if (selectedAnswer == correctAnswer) {
-                feedback.innerHTML = `<span class="correct">Correct!</span>`;
-            } else {
-                feedback.innerHTML = `<span class="incorrect">Incorrect! The correct answer is option ${correctAnswer}.</span>`;
-            }
-            feedback.style.display = 'block';
-            userAnswers[index] = parseInt(selectedAnswer);
-            document.getElementById('nextBtn').style.display = 'inline';
-        }
-
-        document.getElementById('nextBtn').onclick = function() {
-            if (currentQuestionIndex < selectedQuestions.length - 1) {
-                currentQuestionIndex++;
-                displayQuestion();
-            } else {
-                showResults();
-            }
-        };
-
-        function showResults() {
-            const total = selectedQuestions.length;
-            const correct = selectedQuestions.filter((q, index) => userAnswers[index] === q.answer).length;
-            const incorrect = total - correct;
-            const missed = userAnswers.filter(answer => answer === null).length;
-            const percentage = ((correct / total) * 100).toFixed(2);
-
-            document.getElementById('resultSummary').innerHTML = `
-                <p>Total Questions: ${total}</p>
-                <p>Correct: <span class="correct">${correct}</span></p>
-                <p>Incorrect: <span class="incorrect">${incorrect}</span></p>
-                <p>Missed: ${missed}</p>
-                <p>Total Score: ${correct} out of ${total} (${percentage}%)</p>
-            `;
-
-            saveQuiz(selectedQuestions, userAnswers, correct);
-
-            document.getElementById('questionContainer').style.display = 'none';
-            document.getElementById('nextBtn').style.display = 'none';
-            document.getElementById('result').style.display = 'block';
-            document.getElementById('viewDetailBtn').style.display = 'inline';
-        }
-
-        function saveQuiz(questions, userAnswers, score) {
-            const user = auth.currentUser;
-            if (!user) {
-                alert("User not authenticated.");
-                return;
-            }
-
-            const date = new Date();
-            const dateString = date.toISOString().split('T')[0];
-            const timeString = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            const examID = `${dateString}-quiz-${date.getTime()}`;
-            const subjectName = `Conducted on: ${dateString}, at ${timeString}`;
-
-            const examData = {
-                examID,
-                subject: subjectName,
-                date: dateString,
-                score,
-                email: user.email,
-                userAnswers,
-                questions: questions.map(q => ({
-                    id: q.id,
-                    question: q.question,
-                    options: q.options,
-                    correctAnswer: q.answer,
-                    explanation: q.explanation,
-                    imageUrl: q.imageUrl
-                }))
+            document.getElementById('submitBtn').onclick = function(event) {
+                event.preventDefault();
+                userAnswers = getUserAnswers(selectedQuestions);
+                const score = calculateResults(selectedQuestions, userAnswers);
+                showResults(selectedQuestions, userAnswers, score);
             };
-
-            database.ref(`users/${user.uid}/exams/${examID}`).set(examData)
-                .then(() => {
-                    console.log(`Quiz saved successfully with ID: ${examID}`);
-                })
-                .catch(error => {
-                    console.error('Error saving quiz:', error);
-                });
-                }
-
-        document.getElementById('viewDetailBtn').onclick = function() {
-            window.location.href = `detail.html?examID=${examID}`;
-        };
-        function toggleMenu() {
-            const menuContent = document.getElementById('menuContent');
-            menuContent.style.display = menuContent.style.display === 'block' ? 'none' : 'block';
-        }
-
-        function shareLink() {
-            const shareText = 'Check out my quiz results!';
-            navigator.share({
-                title: 'Quiz Results',
-                text: shareText,
-                url: window.location.href
-            }).catch(console.error);
-        }
-
-        function zoomImage(imageUrl) {
-            const zoomImage = document.getElementById('zoomedImg');
-            zoomImage.src = imageUrl;
-            document.getElementById('zoomImage').style.display = 'flex';
-        }
-
-        function closeZoom() {
-            document.getElementById('zoomImage').style.display = 'none';
-        }
-
-        function showAllSubjects() {
-            document.getElementById('allSubjects').innerText = subjects.join(', ');
-            document.getElementById('subjectPopup').style.display = 'block';
-        }
-
-        function closePopup() {
-            document.getElementById('subjectPopup').style.display = 'none';
-        }
+        });
 
         function reportQuestion(questionId) {
             document.getElementById('submitReportBtn').onclick = function() {
@@ -472,7 +339,120 @@
 
         function closeReportPopup() {
             document.getElementById('reportPopup').style.display = 'none';
-            document.getElementById('reportText').value = "";
+            document.getElementById('reportText').value = ""; 
+        }
+
+        function getUserAnswers(questions) {
+            return questions.map((_, index) => {
+                const selectedOption = document.querySelector(`input[name="question${index}"]:checked`);
+                return selectedOption ? parseInt(selectedOption.value) : null;
+            });
+        }
+
+        function calculateResults(questions, userAnswers) {
+            return questions.reduce((score, q, index) => {
+                return score + (userAnswers[index] === q.answer ? 1 : 0);
+            }, 0);
+        }
+
+        function showResults(questions, userAnswers, score) {
+            const total = questions.length;
+            const correct = questions.filter((q, index) => userAnswers[index] === q.answer).length;
+            const incorrect = total - correct;
+            const missed = userAnswers.filter(answer => answer === null).length;
+            const percentage = ((correct / total) * 100).toFixed(2);
+
+            document.getElementById('resultSummary').innerHTML = `
+                <p>Total Questions: ${total}</p>
+                <p>Correct: <span class="correct">${correct}</span></p>
+                <p>Incorrect: <span class="incorrect">${incorrect}</span></p>
+                <p>Missed: ${missed}</p>
+                <p>Total Score: ${score} out of ${total} (${percentage}%)</p>
+            `;
+
+            saveQuiz(questions, userAnswers, score);
+
+            document.getElementById('quizForm').style.display = 'none';
+            document.getElementById('submitBtn').style.display = 'none';
+            document.getElementById('result').style.display = 'block';
+            document.getElementById('viewDetailBtn').style.display = 'inline';
+        }
+
+        function saveQuiz(questions, userAnswers, score) {
+            const user = auth.currentUser;
+            if (!user) {
+                alert("User not authenticated.");
+                return;
+            }
+
+            const date = new Date();
+            const dateString = date.toISOString().split('T')[0];
+            const timeString = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            const examID = `${dateString}-quiz-${date.getTime()}`;
+
+            const subjectName = `Conducted on: ${dateString}, at ${timeString}`;
+
+            const examData = {
+                examID,
+                subject: subjectName,
+                date: dateString,
+                score,
+                email: user.email,
+                userAnswers,
+                questions: questions.map(q => ({
+                    id: q.id,
+                    question: q.question,
+                    options: q.options,
+                    correctAnswer: q.answer,
+                    explanation: q.explanation,
+                    imageUrl: q.imageUrl
+                }))
+            };
+
+            database.ref(`users/${user.uid}/exams/${examID}`).set(examData)
+                .then(() => {
+                    console.log(`Quiz saved successfully with ID: ${examID}`);
+                })
+                .catch(error => {
+                    console.error('Error saving quiz:', error);
+                });
+        }
+
+        document.getElementById('viewDetailBtn').onclick = function() {
+            window.location.href = `detail.html?examID=${examID}`;
+        };
+
+        function toggleMenu() {
+            const menuContent = document.getElementById('menuContent');
+            menuContent.style.display = menuContent.style.display === 'block' ? 'none' : 'block';
+        }
+
+        function shareLink() {
+            const shareText = 'Check out my quiz results!';
+            navigator.share({
+                title: 'Quiz Results',
+                text: shareText,
+                url: window.location.href
+            }).catch(console.error);
+        }
+
+        function zoomImage(imageUrl) {
+            const zoomImage = document.getElementById('zoomedImg');
+            zoomImage.src = imageUrl;
+            document.getElementById('zoomImage').style.display = 'flex';
+        }
+
+        function closeZoom() {
+            document.getElementById('zoomImage').style.display = 'none';
+        }
+
+        function showAllSubjects() {
+            document.getElementById('allSubjects').innerText = subjects.join(', ');
+            document.getElementById('subjectPopup').style.display = 'block';
+        }
+
+        function closePopup() {
+            document.getElementById('subjectPopup').style.display = 'none';
         }
     </script>
 </body>
