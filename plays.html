@@ -177,6 +177,10 @@
             color: white;
             text-align: center;
         }
+        .answer-feedback {
+            display: none;
+            margin-top: 10px;
+        }
     </style>
 </head>
 <body>
@@ -195,8 +199,8 @@
 
     <h1 id="quizSubject"></h1>
     <div class="quiz-container">
-        <form id="quizForm"></form>
-        <button id="submitBtn">Submit Answers</button>
+        <div id="questionContainer"></div>
+        <button id="nextBtn" style="display: none;">Next Question</button>
         <div id="result" class="result">
             <h2>Your Results</h2>
             <p id="resultSummary"></p>
@@ -247,14 +251,10 @@
                 const profilePic = document.getElementById('profilePic');
                 if (user.photoURL) {
                     profilePic.style.backgroundImage = `url(${user.photoURL})`;
-                    profilePic.style.backgroundSize = 'cover';
-                    profilePic.innerHTML = '';
+                    profilePic.style.backgroundSize = "cover";
                 }
-
-                fetchAttemptedExams(user.uid);
-                fetchSubjects();
             } else {
-                window.location.href = 'login.html';
+                window.location.href = "login.html";
             }
         });
 
@@ -262,7 +262,7 @@
         const subjects = urlParams.get('subjects').split(',');
         const numQuestions = parseInt(urlParams.get('numQuestions'));
         let selectedQuestions = [];
-        let examID = "";
+        let currentQuestionIndex = 0;
         let userAnswers = [];
 
         const displayedSubjects = subjects.slice(0, 2);
@@ -288,84 +288,58 @@
             });
 
             selectedQuestions = questions.sort(() => 0.5 - Math.random()).slice(0, numQuestions);
-
-            const quizForm = document.getElementById('quizForm');
-            selectedQuestions.forEach((q, index) => {
-                quizForm.innerHTML += `
-                    <div class="question">
-                        <strong>${index + 1}. ${q.question ? q.question : '<img src="' + q.imageUrl + '" alt="Question Image" onclick="zoomImage(\'' + q.imageUrl + '\')">'} </strong>
-                        ${q.options.map((opt, i) => `
-                            <label>
-                                <input type="radio" name="question${index}" value="${i + 1}"> ${opt}
-                            </label>
-                        `).join('')}
-                        <button type="button" onclick="reportQuestion('${q.id}')">
-                            <i class="fas fa-exclamation-triangle" style="color: orange;"></i>
-                        </button>
-                    </div>
-                `;
-            });
-
-            document.getElementById('submitBtn').onclick = function(event) {
-                event.preventDefault();
-                userAnswers = getUserAnswers(selectedQuestions);
-                const score = calculateResults(selectedQuestions, userAnswers);
-                showResults(selectedQuestions, userAnswers, score);
-            };
+            displayQuestion();
         });
 
-        function reportQuestion(questionId) {
-            document.getElementById('submitReportBtn').onclick = function() {
-                const reportText = document.getElementById('reportText').value;
-                submitReport(questionId, reportText);
-            };
-            document.getElementById('reportPopup').style.display = 'block';
-        }
-
-        function submitReport(questionId, reportText) {
-            if (reportText.trim() === "") {
-                alert("Please provide a report.");
-                return;
+        function displayQuestion() {
+            const question = selectedQuestions[currentQuestionIndex];
+            document.getElementById('questionContainer').innerHTML = `
+                <div class="question">
+                    <strong>${currentQuestionIndex + 1}. ${question.question ? question.question : '<img src="' + question.imageUrl + '" alt="Question Image" onclick="zoomImage(\'' + question.imageUrl + '\')">'} </strong>
+                    ${question.options.map((opt, i) => `
+                        <label>
+                            <input type="radio" name="question${currentQuestionIndex}" value="${i + 1}" onchange="showAnswer(${question.answer}, this.value, ${currentQuestionIndex})"> ${opt}
+                        </label>
+                    `).join('')}
+                    <button type="button" onclick="reportQuestion('${question.id}')">
+                        <i class="fas fa-exclamation-triangle" style="color: orange;"></i>
+                    </button>
+                    <div id="feedback${currentQuestionIndex}" class="answer-feedback"></div>
+                </div>
+            `;
+            document.getElementById('nextBtn').style.display = 'none';
+            if (currentQuestionIndex > 0) {
+                document.getElementById('nextBtn').style.display = 'inline';
             }
-
-            const reportData = {
-                questionId,
-                reportText,
-                reportedBy: auth.currentUser.email,
-                timestamp: firebase.database.ServerValue.TIMESTAMP
-            };
-
-            database.ref('reports').push(reportData)
-                .then(() => {
-                    alert("Report submitted successfully.");
-                    closeReportPopup();
-                })
-                .catch(error => {
-                    console.error('Error submitting report:', error);
-                });
+            if (currentQuestionIndex === selectedQuestions.length - 1) {
+                document.getElementById('nextBtn').innerText = 'Submit';
+            }
         }
 
-        function closeReportPopup() {
-            document.getElementById('reportPopup').style.display = 'none';
-            document.getElementById('reportText').value = "";
+        function showAnswer(correctAnswer, selectedAnswer, index) {
+            const feedback = document.getElementById(`feedback${index}`);
+            if (selectedAnswer == correctAnswer) {
+                feedback.innerHTML = `<span class="correct">Correct!</span>`;
+            } else {
+                feedback.innerHTML = `<span class="incorrect">Incorrect! The correct answer is option ${correctAnswer}.</span>`;
+            }
+            feedback.style.display = 'block';
+            userAnswers[index] = parseInt(selectedAnswer);
+            document.getElementById('nextBtn').style.display = 'inline';
         }
 
-        function getUserAnswers(questions) {
-            return questions.map((_, index) => {
-                const selectedOption = document.querySelector(`input[name="question${index}"]:checked`);
-                return selectedOption ? parseInt(selectedOption.value) : null;
-            });
-        }
+        document.getElementById('nextBtn').onclick = function() {
+            if (currentQuestionIndex < selectedQuestions.length - 1) {
+                currentQuestionIndex++;
+                displayQuestion();
+            } else {
+                showResults();
+            }
+        };
 
-        function calculateResults(questions, userAnswers) {
-            return questions.reduce((score, q, index) => {
-                return score + (userAnswers[index] === q.answer ? 1 : 0);
-            }, 0);
-        }
-
-        function showResults(questions, userAnswers, score) {
-            const total = questions.length;
-            const correct = questions.filter((q, index) => userAnswers[index] === q.answer).length;
+        function showResults() {
+            const total = selectedQuestions.length;
+            const correct = selectedQuestions.filter((q, index) => userAnswers[index] === q.answer).length;
             const incorrect = total - correct;
             const missed = userAnswers.filter(answer => answer === null).length;
             const percentage = ((correct / total) * 100).toFixed(2);
@@ -375,13 +349,13 @@
                 <p>Correct: <span class="correct">${correct}</span></p>
                 <p>Incorrect: <span class="incorrect">${incorrect}</span></p>
                 <p>Missed: ${missed}</p>
-                <p>Total Score: ${score} out of ${total} (${percentage}%)</p>
+                <p>Total Score: ${correct} out of ${total} (${percentage}%)</p>
             `;
 
-            saveQuiz(questions, userAnswers, score);
+            saveQuiz(selectedQuestions, userAnswers, correct);
 
-            document.getElementById('quizForm').style.display = 'none';
-            document.getElementById('submitBtn').style.display = 'none';
+            document.getElementById('questionContainer').style.display = 'none';
+            document.getElementById('nextBtn').style.display = 'none';
             document.getElementById('result').style.display = 'block';
             document.getElementById('viewDetailBtn').style.display = 'inline';
         }
@@ -396,8 +370,8 @@
             const date = new Date();
             const dateString = date.toISOString().split('T')[0];
             const timeString = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            examID = `${dateString}-quiz-${date.getTime()}`;
 
+            const examID = `${dateString}-quiz-${date.getTime()}`;
             const subjectName = `Conducted on: ${dateString}, at ${timeString}`;
 
             const examData = {
@@ -461,6 +435,42 @@
 
         function closePopup() {
             document.getElementById('subjectPopup').style.display = 'none';
+        }
+
+        function reportQuestion(questionId) {
+            document.getElementById('submitReportBtn').onclick = function() {
+                const reportText = document.getElementById('reportText').value;
+                submitReport(questionId, reportText);
+            };
+            document.getElementById('reportPopup').style.display = 'block';
+        }
+
+        function submitReport(questionId, reportText) {
+            if (reportText.trim() === "") {
+                alert("Please provide a report.");
+                return;
+            }
+
+            const reportData = {
+                questionId,
+                reportText,
+                reportedBy: auth.currentUser.email,
+                timestamp: firebase.database.ServerValue.TIMESTAMP
+            };
+
+            database.ref('reports').push(reportData)
+                .then(() => {
+                    alert("Report submitted successfully.");
+                    closeReportPopup();
+                })
+                .catch(error => {
+                    console.error('Error submitting report:', error);
+                });
+        }
+
+        function closeReportPopup() {
+            document.getElementById('reportPopup').style.display = 'none';
+            document.getElementById('reportText').value = "";
         }
     </script>
 </body>
