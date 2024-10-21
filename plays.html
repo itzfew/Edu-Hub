@@ -181,10 +181,6 @@
             display: none;
             margin-top: 10px;
         }
-        .explanation {
-            margin-top: 10px;
-            font-style: italic;
-        }
     </style>
 </head>
 <body>
@@ -251,6 +247,7 @@
             if (user) {
                 const userName = user.displayName || user.email.split('@')[0];
                 document.getElementById('userName').innerText = userName;
+
                 const profilePic = document.getElementById('profilePic');
                 if (user.photoURL) {
                     profilePic.style.backgroundImage = `url(${user.photoURL})`;
@@ -347,25 +344,13 @@
             const missed = userAnswers.filter(answer => answer === null).length;
             const percentage = ((correct / total) * 100).toFixed(2);
 
-            const resultsHtml = `
+            document.getElementById('resultSummary').innerHTML = `
                 <p>Total Questions: ${total}</p>
                 <p>Correct: <span class="correct">${correct}</span></p>
                 <p>Incorrect: <span class="incorrect">${incorrect}</span></p>
                 <p>Missed: ${missed}</p>
                 <p>Total Score: ${correct} out of ${total} (${percentage}%)</p>
-                <div class="separator"></div>
-                <h3>Details:</h3>
-                ${selectedQuestions.map((q, index) => `
-                    <div class="result-question">
-                        <strong>${index + 1}. ${q.question}</strong>
-                        <p>Your Answer: ${userAnswers[index] === q.answer ? "Correct" : "Incorrect"}</p>
-                        <p>Correct Answer: ${q.answer}</p>
-                        ${q.explanation !== "No explanation provided." ? `<p class="explanation">Explanation: ${q.explanation}</p>` : ''}
-                    </div>
-                `).join('')}
             `;
-
-            document.getElementById('resultSummary').innerHTML = resultsHtml;
 
             saveQuiz(selectedQuestions, userAnswers, correct);
 
@@ -416,8 +401,6 @@
         }
 
         document.getElementById('viewDetailBtn').onclick = function() {
-            const user = auth.currentUser;
-            const examID = `${new Date().toISOString().split('T')[0]}-quiz-${Date.now()}`;
             window.location.href = `detail.html?examID=${examID}`;
         };
 
