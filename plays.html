@@ -66,6 +66,14 @@
             margin-top: 10px;
             font-size: 14px;
         }
+        .correct {
+            color: green;
+            font-weight: bold;
+        }
+        .incorrect {
+            color: red;
+            font-weight: bold;
+        }
         footer {
             text-align: center;
             color: #333;
@@ -200,6 +208,7 @@
                 <strong>Correct answer: ${question.options[correctAnswer - 1]}</strong>
                 <p>${question.explanation}</p>
             `;
+            feedback.className = selectedValue === correctAnswer ? 'feedback correct' : 'feedback incorrect';
             feedback.style.display = 'block';
         }
 
@@ -228,7 +237,20 @@
             document.getElementById('nextBtn').style.display = 'none';
             document.getElementById('submitBtn').style.display = 'none';
             document.getElementById('result').style.display = 'block';
-            document.getElementById('viewDetailBtn').style.display = 'inline';
+
+            saveResults(correct, total);
+        }
+
+        function saveResults(correct, total) {
+            const userId = auth.currentUser.uid;
+            const resultRef = database.ref('results/' + userId);
+            const newResult = {
+                date: new Date().toISOString(),
+                score: correct,
+                total: total
+            };
+
+            resultRef.push(newResult);
         }
 
         function toggleMenu() {
