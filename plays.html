@@ -7,8 +7,8 @@
     <script src="https://www.gstatic.com/firebasejs/7.20.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/7.20.0/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/7.20.0/firebase-database.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
         body {
@@ -192,11 +192,11 @@
     <div class="quiz-container">
         <form id="quizForm"></form>
         <button id="submitBtn">Submit Answers</button>
+        <button id="downloadPdfBtn">Download Questions as PDF</button>
         <div id="result" class="result">
             <h2>Your Results</h2>
             <p id="resultSummary"></p>
             <button id="viewDetailBtn" style="display: none;">View Details</button>
-            <button id="printBtn" style="display: none;" onclick="printQuestionsAsPDF()">Print Questions as PDF</button>
         </div>
     </div>
 
@@ -244,79 +244,71 @@
                 if (user.photoURL) {
                     profilePic.style.backgroundImage = `url(${user.photoURL})`;
                     profilePic.style.backgroundSize = 'cover';
-                    profilePic.innerHTML = '';
                 }
-
-                loadQuizData();
-            } else {
-                // Redirect or handle user not logged in
             }
         });
 
-        function loadQuizData() {
-            const subject = "Math"; // Replace with actual subject
-            document.getElementById('quizSubject').innerText = subject;
+        const selectedQuestions = [
+            {
+                question: "What is the capital of France?",
+                options: ["Berlin", "Madrid", "Paris", "Rome"],
+                answer: "Paris"
+            },
+            {
+                question: "Which planet is known as the Red Planet?",
+                options: ["Earth", "Mars", "Jupiter", "Saturn"],
+                answer: "Mars"
+            },
+            // Add more questions as needed
+        ];
 
-            // Fetch questions from Firebase
-            database.ref(`quizzes/${subject}`).once('value').then(snapshot => {
-                const questions = snapshot.val();
-                displayQuestions(questions);
+        document.getElementById('quizSubject').innerText = "General Knowledge Quiz";
+        const quizForm = document.getElementById('quizForm');
+
+        selectedQuestions.forEach((q, index) => {
+            const questionDiv = document.createElement('div');
+            questionDiv.classList.add('question');
+            questionDiv.innerHTML = `<strong>${index + 1}. ${q.question}</strong>`;
+            q.options.forEach((opt, i) => {
+                questionDiv.innerHTML += `<label><input type="radio" name="question${index}" value="${opt}"> ${opt}</label>`;
             });
-        }
-
-        let selectedQuestions = [];
-        function displayQuestions(questions) {
-            const quizForm = document.getElementById('quizForm');
-            quizForm.innerHTML = '';
-
-            Object.keys(questions).forEach((key, index) => {
-                const question = questions[key];
-                const questionDiv = document.createElement('div');
-                questionDiv.classList.add('question');
-
-                const questionText = document.createElement('p');
-                questionText.innerText = `${index + 1}. ${question.question}`;
-                questionDiv.appendChild(questionText);
-
-                question.options.forEach((option, i) => {
-                    const label = document.createElement('label');
-                    label.innerHTML = `<input type="radio" name="q${index}" value="${option}"> ${option}`;
-                    questionDiv.appendChild(label);
-                });
-
-                quizForm.appendChild(questionDiv);
-                selectedQuestions.push(question);
-            });
-        }
-
-        document.getElementById('submitBtn').addEventListener('click', function(event) {
-            event.preventDefault();
-            calculateResults();
+            quizForm.appendChild(questionDiv);
         });
 
-        function calculateResults() {
-            const result = document.getElementById('result');
-            const resultSummary = document.getElementById('resultSummary');
-
-            // Logic to calculate results goes here
-            resultSummary.innerText = "You answered X questions correctly."; // Replace with actual results
-            result.style.display = 'block';
-            document.getElementById('printBtn').style.display = 'inline-block'; // Show print button
-        }
-
-        function printQuestionsAsPDF() {
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF();
-            
+        document.getElementById('submitBtn').onclick = function(event) {
+            event.preventDefault();
+            let score = 0;
             selectedQuestions.forEach((q, index) => {
-                doc.text(`${index + 1}. ${q.question}`, 10, 10 + (index * 30));
+                const selectedOption = document.querySelector(`input[name="question${index}"]:checked`);
+                if (selectedOption && selectedOption.value === q.answer) {
+                    score++;
+                }
+            });
+            const totalQuestions = selectedQuestions.length;
+            document.getElementById('resultSummary').innerText = `You scored ${score} out of ${totalQuestions}.`;
+            document.getElementById('result').style.display = 'block';
+        };
+
+        document.getElementById('downloadPdfBtn').onclick = function() {
+            downloadQuestionsAsPDF(selectedQuestions);
+        };
+
+        function downloadQuestionsAsPDF(questions) {
+            const { jsPDF } = window.jspdf;
+            const pdf = new jsPDF();
+
+            pdf.setFont("Helvetica", "normal");
+            pdf.setFontSize(12);
+            pdf.text("Quiz Questions", 10, 10);
+
+            questions.forEach((q, index) => {
+                pdf.text(`${index + 1}. ${q.question}`, 10, 20 + (index * 20));
                 q.options.forEach((opt, i) => {
-                    doc.text(`${String.fromCharCode(65 + i)}. ${opt}`, 20, 15 + (index * 30));
+                    pdf.text(`   ${String.fromCharCode(65 + i)}. ${opt}`, 15, 25 + (index * 20));
                 });
-                doc.text('', 10, 20 + (index * 30)); // Space between questions
             });
 
-            doc.save('quiz-questions.pdf');
+            pdf.save("quiz-questions.pdf");
         }
 
         function toggleMenu() {
@@ -325,9 +317,9 @@
         }
 
         function shareLink() {
-            const shareUrl = window.location.href;
-            navigator.clipboard.writeText(shareUrl).then(() => {
-                alert('Link copied to clipboard!');
+            const url = window.location.href;
+            navigator.clipboard.writeText(url).then(() => {
+                alert("Link copied to clipboard!");
             });
         }
 
@@ -342,19 +334,6 @@
         function closeReportPopup() {
             document.getElementById('reportPopup').style.display = 'none';
         }
-
-        document.getElementById('viewDetailBtn').addEventListener('click', function() {
-            // Logic to show details of the results
-        });
-
-        document.getElementById('submitReportBtn').addEventListener('click', function() {
-            const reportText = document.getElementById('reportText').value;
-            // Logic to handle report submission
-            alert('Report submitted: ' + reportText);
-        });
-
-        // Initialize footer with year
-        document.getElementById('footer').innerText = `© ${new Date().getFullYear()} Your Company`;
     </script>
 </body>
 </html>
