@@ -8,9 +8,10 @@
     <script src="https://www.gstatic.com/firebasejs/7.20.0/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/7.20.0/firebase-database.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
+        /* CSS styles remain unchanged */
         body {
             font-family: 'Arial', sans-serif;
             margin: 0;
@@ -132,6 +133,12 @@
             object-fit: contain;
             border-radius: 8px;
         }
+        .question img {
+            width: 70%;
+            max-width: 600px;
+            height: auto;
+            cursor: pointer;
+        }
         .popup {
             display: none;
             position: fixed;
@@ -192,7 +199,7 @@
     <div class="quiz-container">
         <form id="quizForm"></form>
         <button id="submitBtn">Submit Answers</button>
-        <button id="downloadPdfBtn">Download Questions as PDF</button>
+        <button id="downloadPdfBtn">Download PDF</button> <!-- Button for PDF download -->
         <div id="result" class="result">
             <h2>Your Results</h2>
             <p id="resultSummary"></p>
@@ -212,6 +219,7 @@
         <div class="popup-close" onclick="closePopup()">Close</div>
     </div>
 
+    <!-- Report Question Popup -->
     <div id="reportPopup" class="popup">
         <div class="popup-header">Report Question</div>
         <textarea id="reportText" placeholder="Please describe the issue..." rows="4" style="width: 100%;"></textarea>
@@ -241,53 +249,35 @@
                 document.getElementById('userName').innerText = userName;
 
                 const profilePic = document.getElementById('profilePic');
-                if (user.photoURL) {
-                    profilePic.style.backgroundImage = `url(${user.photoURL})`;
-                    profilePic.style.backgroundSize = 'cover';
-                }
+                profilePic.style.backgroundColor = '#007bff'; // Assign a default color
+                profilePic.innerHTML = user.photoURL ? `<img src="${user.photoURL}" alt="Profile" style="width: 100%; height: 100%; border-radius: 50%;">` : `<i class="fas fa-user"></i>`;
+            } else {
+                document.getElementById('userName').innerText = 'Guest';
+                document.getElementById('profilePic').innerHTML = `<i class="fas fa-user"></i>`;
             }
         });
 
-        const selectedQuestions = [
-            {
-                question: "What is the capital of France?",
-                options: ["Berlin", "Madrid", "Paris", "Rome"],
-                answer: "Paris"
-            },
-            {
-                question: "Which planet is known as the Red Planet?",
-                options: ["Earth", "Mars", "Jupiter", "Saturn"],
-                answer: "Mars"
-            },
-            // Add more questions as needed
-        ];
+        let selectedQuestions = [];
 
-        document.getElementById('quizSubject').innerText = "General Knowledge Quiz";
-        const quizForm = document.getElementById('quizForm');
-
-        selectedQuestions.forEach((q, index) => {
-            const questionDiv = document.createElement('div');
-            questionDiv.classList.add('question');
-            questionDiv.innerHTML = `<strong>${index + 1}. ${q.question}</strong>`;
-            q.options.forEach((opt, i) => {
-                questionDiv.innerHTML += `<label><input type="radio" name="question${index}" value="${opt}"> ${opt}</label>`;
+        // Function to display questions
+        function displayQuestions(questions) {
+            const quizForm = document.getElementById('quizForm');
+            quizForm.innerHTML = ''; // Clear existing questions
+            questions.forEach((q, index) => {
+                const questionDiv = document.createElement('div');
+                questionDiv.classList.add('question');
+                questionDiv.innerHTML = `<strong>${index + 1}. ${q.question}</strong>`;
+                q.options.forEach((option, i) => {
+                    questionDiv.innerHTML += `
+                        <label>
+                            <input type="radio" name="q${index}" value="${i}"> ${option}
+                        </label>
+                    `;
+                });
+                quizForm.appendChild(questionDiv);
             });
-            quizForm.appendChild(questionDiv);
-        });
-
-        document.getElementById('submitBtn').onclick = function(event) {
-            event.preventDefault();
-            let score = 0;
-            selectedQuestions.forEach((q, index) => {
-                const selectedOption = document.querySelector(`input[name="question${index}"]:checked`);
-                if (selectedOption && selectedOption.value === q.answer) {
-                    score++;
-                }
-            });
-            const totalQuestions = selectedQuestions.length;
-            document.getElementById('resultSummary').innerText = `You scored ${score} out of ${totalQuestions}.`;
-            document.getElementById('result').style.display = 'block';
-        };
+            selectedQuestions = questions; // Store selected questions
+        }
 
         document.getElementById('downloadPdfBtn').onclick = function() {
             downloadQuestionsAsPDF(selectedQuestions);
@@ -311,16 +301,11 @@
             pdf.save("quiz-questions.pdf");
         }
 
+        // Additional existing JavaScript code...
+
         function toggleMenu() {
             const menuContent = document.getElementById('menuContent');
             menuContent.style.display = menuContent.style.display === 'block' ? 'none' : 'block';
-        }
-
-        function shareLink() {
-            const url = window.location.href;
-            navigator.clipboard.writeText(url).then(() => {
-                alert("Link copied to clipboard!");
-            });
         }
 
         function closeZoom() {
@@ -334,6 +319,18 @@
         function closeReportPopup() {
             document.getElementById('reportPopup').style.display = 'none';
         }
+
+        function shareLink() {
+            const shareData = {
+                title: 'Quiz App',
+                text: 'Check out this amazing quiz app!',
+                url: window.location.href
+            };
+            navigator.share(shareData).catch(console.error);
+        }
+
+        // Fetch and display questions
+        // Add your logic to fetch questions from Firebase and call displayQuestions(questions)
     </script>
 </body>
 </html>
