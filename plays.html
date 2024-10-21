@@ -7,6 +7,7 @@
     <script src="https://www.gstatic.com/firebasejs/7.20.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/7.20.0/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/7.20.0/firebase-database.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
@@ -80,60 +81,11 @@
             cursor: pointer;
             color: #333;
         }
-        .menu-content {
-            display: none;
-            position: absolute;
-            background-color: #fff;
-            min-width: 200px;
-            box-shadow: 0px 8px 16px rgba(0, 0, 0, 0.2);
-            border-radius: 5px;
-            z-index: 1;
-        }
-        .menu-content a, .menu-content button {
-            color: black;
-            padding: 12px 16px;
-            text-decoration: none;
-            display: block;
-            border: none;
-            background: none;
-            text-align: left;
-            width: 100%;
-        }
-        .menu-content a:hover, .menu-content button:hover {
-            background-color: #f1f1f1;
-        }
         footer {
             text-align: center;
             color: #333;
             padding: 10px;
             margin-top: auto;
-        }
-        .separator {
-            height: 2px;
-            background-color: #007bff;
-            margin: 20px 0;
-        }
-        .progress-container {
-            margin: 20px 0;
-            height: 10px;
-            background-color: #ddd;
-            border-radius: 5px;
-        }
-        .progress-bar {
-            height: 100%;
-            background-color: #007bff;
-            width: 0;
-            transition: width 0.3s;
-        }
-        .loading-spinner {
-            display: none;
-            text-align: center;
-            margin: 20px 0;
-        }
-        .timer {
-            font-weight: bold;
-            color: red;
-            margin-bottom: 20px;
         }
         .zoom {
             display: none;
@@ -164,16 +116,6 @@
             padding: 20px;
             border-radius: 8px;
             box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.2);
-        }
-        .popup-header {
-            font-size: 18px;
-            margin-bottom: 10px;
-        }
-        .popup-close {
-            cursor: pointer;
-            color: #007bff;
-            margin-top: 10px;
-            text-align: right;
         }
         .profile-info {
             display: flex;
@@ -211,13 +153,6 @@
 
     <h1 id="quizSubject"></h1>
     <div class="quiz-container">
-        <div class="loading-spinner" id="loadingSpinner">
-            <i class="fas fa-spinner fa-spin"></i> Loading...
-        </div>
-        <div id="progressContainer" class="progress-container">
-            <div id="progressBar" class="progress-bar"></div>
-        </div>
-        <div id="timer" class="timer"></div>
         <form id="quizForm"></form>
         <button id="submitBtn">Submit Answers</button>
         <div id="result" class="result">
@@ -262,10 +197,6 @@
         const auth = firebase.auth();
         const database = firebase.database();
 
-        let timerInterval;
-        const totalTime = 300; // Total time in seconds
-        let timeLeft = totalTime;
-
         auth.onAuthStateChanged(user => {
             if (user) {
                 const userName = user.displayName || user.email.split('@')[0];
@@ -278,7 +209,6 @@
                     profilePic.innerHTML = '';
                 }
 
-                fetchAttemptedExams(user.uid);
                 fetchSubjects();
             } else {
                 window.location.href = 'login.html';
@@ -308,111 +238,47 @@
                         options: quizData.options,
                         answer: parseInt(quizData.correctOption),
                         explanation: quizData.explanation || "No explanation provided.",
-                        imageUrl: quizData.imageUrl || null,
-                        id: childSnapshot.key
+                        imageUrl: quizData.imageUrl || null
                     });
                 }
             });
 
             selectedQuestions = questions.sort(() => 0.5 - Math.random()).slice(0, numQuestions);
-            const quizForm = document.getElementById('quizForm');
-
-            selectedQuestions.forEach((q, index) => {
-                quizForm.innerHTML += `
-                    <div class="question">
-                        <strong>${index + 1}. ${q.question ? q.question : '<img src="' + q.imageUrl + '" alt="Question Image" onclick="zoomImage(\'' + q.imageUrl + '\')">'} </strong>
-                        ${q.options.map((opt, i) => `
-                            <label>
-                                <input type="radio" name="question${index}" value="${i + 1}"> ${opt}
-                            </label>
-                        `).join('')}
-                        <button type="button" onclick="reportQuestion('${q.id}')">
-                            <i class="fas fa-exclamation-triangle" style="color: orange;"></i>
-                        </button>
-                    </div>
-                `;
-            });
-
-            document.getElementById('submitBtn').onclick = function(event) {
-                event.preventDefault();
-                userAnswers = getUserAnswers(selectedQuestions);
-                const score = calculateResults(selectedQuestions, userAnswers);
-                showResults(selectedQuestions, userAnswers, score);
-            };
-
-            startTimer();
+            loadQuestions();
         });
 
-        function startTimer() {
-            document.getElementById('timer').innerText = `Time Left: ${timeLeft}s`;
-            timerInterval = setInterval(() => {
-                timeLeft--;
-                document.getElementById('timer').innerText = `Time Left: ${timeLeft}s`;
-                updateProgressBar();
-                if (timeLeft <= 0) {
-                    clearInterval(timerInterval);
-                    alert('Time is up! Submitting your answers.');
-                    document.getElementById('submitBtn').click();
-                }
-            }, 1000);
-        }
-
-        function updateProgressBar() {
-            const progressBar = document.getElementById('progressBar');
-            const percentage = ((totalTime - timeLeft) / totalTime) * 100;
-            progressBar.style.width = percentage + '%';
-        }
-
-        function reportQuestion(questionId) {
-            document.getElementById('submitReportBtn').onclick = function() {
-                const reportText = document.getElementById('reportText').value;
-                submitReport(questionId, reportText);
-            };
-            document.getElementById('reportPopup').style.display = 'block';
-        }
-
-        function submitReport(questionId, reportText) {
-            if (reportText.trim() === "") {
-                alert("Please provide a report.");
-                return;
-            }
-
-            const reportData = {
-                questionId,
-                reportText,
-                reportedBy: auth.currentUser.email,
-                timestamp: firebase.database.ServerValue.TIMESTAMP
-            };
-
-            database.ref('reports').push(reportData)
-                .then(() => {
-                    alert("Report submitted successfully.");
-                    closeReportPopup();
-                })
-                .catch(error => {
-                    console.error('Error submitting report:', error);
+        function loadQuestions() {
+            const quizForm = document.getElementById('quizForm');
+            selectedQuestions.forEach((q, index) => {
+                const questionDiv = document.createElement('div');
+                questionDiv.className = 'question';
+                questionDiv.innerHTML = `
+                    <p>${index + 1}. ${q.question}</p>
+                    ${q.imageUrl ? `<img src="${q.imageUrl}" alt="Question Image" style="max-width: 100%;" onclick="zoomImage('${q.imageUrl}')">` : ''}
+                `;
+                q.options.forEach((option, i) => {
+                    questionDiv.innerHTML += `
+                        <label>
+                            <input type="radio" name="question${index}" value="${i}">
+                            ${String.fromCharCode(97 + i)}) ${option}
+                        </label>
+                    `;
                 });
-        }
-
-        function closeReportPopup() {
-            document.getElementById('reportPopup').style.display = 'none';
-            document.getElementById('reportText').value = ""; // Clear the textarea
-        }
-
-        function getUserAnswers(questions) {
-            return questions.map((_, index) => {
-                const selectedOption = document.querySelector(`input[name="question${index}"]:checked`);
-                return selectedOption ? parseInt(selectedOption.value) : null;
+                quizForm.appendChild(questionDiv);
             });
         }
 
-        function calculateResults(questions, userAnswers) {
-            return questions.reduce((score, q, index) => {
-                return score + (userAnswers[index] === q.answer ? 1 : 0);
-            }, 0);
-        }
+        document.getElementById('submitBtn').addEventListener('click', function(event) {
+            event.preventDefault();
+            userAnswers = [];
+            selectedQuestions.forEach((_, index) => {
+                const selectedOption = document.querySelector(`input[name="question${index}"]:checked`);
+                userAnswers.push(selectedOption ? parseInt(selectedOption.value) : null);
+            });
+            showResults(selectedQuestions, userAnswers);
+        });
 
-        function showResults(questions, userAnswers, score) {
+        function showResults(questions, userAnswers) {
             const total = questions.length;
             const correct = questions.filter((q, index) => userAnswers[index] === q.answer).length;
             const incorrect = total - correct;
@@ -424,74 +290,62 @@
                 <p>Correct: <span class="correct">${correct}</span></p>
                 <p>Incorrect: <span class="incorrect">${incorrect}</span></p>
                 <p>Missed: ${missed}</p>
-                <p>Total Score: ${score} out of ${total} (${percentage}%)</p>
+                <p>Total Score: ${correct} out of ${total} (${percentage}%)</p>
             `;
 
-            saveQuiz(questions, userAnswers, score);
-
+            generatePDF(questions, userAnswers);
             document.getElementById('quizForm').style.display = 'none';
             document.getElementById('submitBtn').style.display = 'none';
             document.getElementById('result').style.display = 'block';
             document.getElementById('viewDetailBtn').style.display = 'inline';
-            clearInterval(timerInterval); // Stop the timer
         }
 
-        function saveQuiz(questions, userAnswers, score) {
-            const user = auth.currentUser;
-            if (!user) {
-                alert("User not authenticated.");
-                return;
-            }
+        function generatePDF(questions, userAnswers) {
+            const { jsPDF } = window.jspdf;
+            const pdf = new jsPDF();
 
-            const date = new Date();
-            const dateString = date.toISOString().split('T')[0];
-            const timeString = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            examID = `${dateString}-quiz-${date.getTime()}`;
+            const totalQuestions = questions.length;
+            const pageHeight = pdf.internal.pageSize.height;
+            let yPosition = 10;
+            const margin = 10;
 
-            const subjectName = `Conducted on: ${dateString}, at ${timeString}`;
+            pdf.text('Answer Index:', margin, yPosition);
+            let answerIndex = questions.map((q, index) => `${index + 1}: ${userAnswers[index] === q.answer ? 'Correct' : 'Incorrect'}`).join(', ');
+            yPosition += 10;
+            pdf.text(answerIndex, margin, yPosition);
+            yPosition += 10;
 
-            const examData = {
-                examID,
-                subject: subjectName,
-                date: dateString,
-                score,
-                email: user.email,
-                userAnswers,
-                questions: questions.map(q => ({
-                    id: q.id,
-                    question: q.question,
-                    options: q.options,
-                    correctAnswer: q.answer,
-                    explanation: q.explanation,
-                    imageUrl: q.imageUrl
-                }))
-            };
-
-            database.ref(`users/${user.uid}/exams/${examID}`).set(examData)
-                .then(() => {
-                    console.log(`Quiz saved successfully with ID: ${examID}`);
-                })
-                .catch(error => {
-                    console.error('Error saving quiz:', error);
+            questions.forEach((q, i) => {
+                pdf.text(`${i + 1}. ${q.question}`, margin, yPosition);
+                yPosition += 5;
+                q.options.forEach((option, index) => {
+                    pdf.text(`  ${String.fromCharCode(97 + index)}) ${option}`, margin + 10, yPosition);
+                    yPosition += 5;
                 });
-        }
 
-        document.getElementById('viewDetailBtn').onclick = function() {
-            window.location.href = `detail.html?examID=${examID}`;
-        };
+                if (yPosition > pdf.internal.pageSize.height - margin) {
+                    pdf.addPage();
+                    yPosition = margin;
+                }
+                yPosition += 5;
+            });
+
+            pdf.save('quiz_results.pdf');
+        }
 
         function toggleMenu() {
             const menuContent = document.getElementById('menuContent');
             menuContent.style.display = menuContent.style.display === 'block' ? 'none' : 'block';
         }
 
-        function shareLink() {
-            const shareText = 'Check out my quiz results!';
-            navigator.share({
-                title: 'Quiz Results',
-                text: shareText,
-                url: window.location.href
-            }).catch(console.error);
+        function showAllSubjects() {
+            const allSubjects = subjects.map(subject => `<li>${subject}</li>`).join('');
+            document.getElementById('allSubjects').innerHTML = `<ul>${allSubjects}</ul>`;
+            document.getElementById('subjectPopup').style.display = 'block';
+        }
+
+        function closePopup() {
+            document.getElementById('subjectPopup').style.display = 'none';
         }
 
         function zoomImage(imageUrl) {
@@ -504,14 +358,27 @@
             document.getElementById('zoomImage').style.display = 'none';
         }
 
-        function showAllSubjects() {
-            document.getElementById('allSubjects').innerText = subjects.join(', ');
-            document.getElementById('subjectPopup').style.display = 'block';
+        function shareLink() {
+            const shareableLink = window.location.href;
+            navigator.clipboard.writeText(shareableLink).then(() => {
+                alert('Link copied to clipboard!');
+            });
         }
 
-        function closePopup() {
-            document.getElementById('subjectPopup').style.display = 'none';
-        }
+        fetchSubjects = () => {
+            database.ref('subjects').once('value').then(snapshot => {
+                let subjectsList = [];
+                snapshot.forEach(childSnapshot => {
+                    subjectsList.push(childSnapshot.val().subjectName);
+                });
+                subjectsList.forEach(subject => {
+                    const option = document.createElement('option');
+                    option.value = subject;
+                    option.textContent = subject;
+                    document.getElementById('subjectSelect').appendChild(option);
+                });
+            });
+        };
     </script>
 </body>
 </html>
