@@ -7,6 +7,7 @@
     <script src="https://www.gstatic.com/firebasejs/7.20.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/7.20.0/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/7.20.0/firebase-database.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
         body {
@@ -62,23 +63,11 @@
             border: 1px solid #ddd;
             border-radius: 8px;
         }
-        .feedback {
-            margin-top: 10px;
-            font-size: 14px;
-        }
         .correct {
             color: green;
-            font-weight: bold;
         }
         .incorrect {
             color: red;
-            font-weight: bold;
-        }
-        footer {
-            text-align: center;
-            color: #333;
-            padding: 10px;
-            margin-top: auto;
         }
         .menu {
             position: absolute;
@@ -91,12 +80,109 @@
             cursor: pointer;
             color: #333;
         }
+        .menu-content {
+            display: none;
+            position: absolute;
+            background-color: #fff;
+            min-width: 200px;
+            box-shadow: 0px 8px 16px rgba(0, 0, 0, 0.2);
+            border-radius: 5px;
+            z-index: 1;
+        }
+        .menu-content a, .menu-content button {
+            color: black;
+            padding: 12px 16px;
+            text-decoration: none;
+            display: block;
+            border: none;
+            background: none;
+            text-align: left;
+            width: 100%;
+        }
+        .menu-content a:hover, .menu-content button:hover {
+            background-color: #f1f1f1;
+        }
+        footer {
+            text-align: center;
+            color: #333;
+            padding: 10px;
+            margin-top: auto;
+        }
+        .separator {
+            height: 2px;
+            background-color: #007bff;
+            margin: 20px 0;
+        }
+        .zoom {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            justify-content: center;
+            align-items: center;
+        }
+        .zoom img {
+            max-width: 90%;
+            max-height: 90%;
+            object-fit: contain;
+            border-radius: 8px;
+        }
+        .question img {
+            width: 70%;
+            max-width: 600px;
+            height: auto;
+            cursor: pointer;
+        }
+        .popup {
+            display: none;
+            position: fixed;
+            z-index: 1001;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.2);
+        }
+        .popup-header {
+            font-size: 18px;
+            margin-bottom: 10px;
+        }
+        .popup-close {
+            cursor: pointer;
+            color: #007bff;
+            margin-top: 10px;
+            text-align: right;
+        }
+        .profile-info {
+            display: flex;
+            align-items: center;
+            padding: 12px;
+        }
+        .profile-pic {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            margin-right: 10px;
+            background-color: #ddd;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 20px;
+            color: white;
+            text-align: center;
+        }
     </style>
 </head>
 <body>
     <div class="menu">
         <i class="fas fa-bars menu-icon" onclick="toggleMenu()"></i>
-        <div class="menu-content" id="menuContent" style="display: none;">
+        <div class="menu-content" id="menuContent">
             <div id="profileInfo" class="profile-info">
                 <div id="profilePic" class="profile-pic"><i class="fas fa-user"></i></div>
                 <span id="userName"></span>
@@ -109,9 +195,8 @@
 
     <h1 id="quizSubject"></h1>
     <div class="quiz-container">
-        <div id="questionDisplay"></div>
-        <button id="nextBtn" style="display: none;" onclick="nextQuestion()">Next</button>
-        <button id="submitBtn" style="display: none;">Submit Answers</button>
+        <form id="quizForm"></form>
+        <button id="submitBtn">Submit Answers</button>
         <div id="result" class="result">
             <h2>Your Results</h2>
             <p id="resultSummary"></p>
@@ -120,6 +205,23 @@
     </div>
 
     <footer id="footer"></footer>
+
+    <div id="zoomImage" class="zoom" onclick="closeZoom()">
+        <img id="zoomedImg" alt="Zoomed Image">
+    </div>
+
+    <div id="subjectPopup" class="popup">
+        <div class="popup-header">All Selected Subjects</div>
+        <div id="allSubjects"></div>
+        <div class="popup-close" onclick="closePopup()">Close</div>
+    </div>
+
+    <div id="reportPopup" class="popup">
+        <div class="popup-header">Report Question</div>
+        <textarea id="reportText" placeholder="Please describe the issue..." rows="4" style="width: 100%;"></textarea>
+        <button id="submitReportBtn">Submit Report</button>
+        <div class="popup-close" onclick="closeReportPopup()">Close</div>
+    </div>
 
     <script>
         const firebaseConfig = {
@@ -137,14 +239,19 @@
         const auth = firebase.auth();
         const database = firebase.database();
 
-        let selectedQuestions = [];
-        let currentQuestionIndex = 0;
-        let userAnswers = [];
-
         auth.onAuthStateChanged(user => {
             if (user) {
                 const userName = user.displayName || user.email.split('@')[0];
                 document.getElementById('userName').innerText = userName;
+
+                const profilePic = document.getElementById('profilePic');
+                if (user.photoURL) {
+                    profilePic.style.backgroundImage = `url(${user.photoURL})`;
+                    profilePic.style.backgroundSize = 'cover';
+                    profilePic.innerHTML = '';
+                }
+
+                fetchAttemptedExams(user.uid);
                 fetchSubjects();
             } else {
                 window.location.href = 'login.html';
@@ -152,10 +259,17 @@
         });
 
         const urlParams = new URLSearchParams(window.location.search);
-        const subjects = urlParams.get('subjects').split(','); 
+        const subjects = urlParams.get('subjects').split(',');
         const numQuestions = parseInt(urlParams.get('numQuestions'));
+        let selectedQuestions = [];
+        let examID = "";
+        let userAnswers = [];
 
-        document.getElementById('quizSubject').innerText = `Subjects: ${subjects.join(', ')}`;
+        const displayedSubjects = subjects.slice(0, 2);
+        document.getElementById('quizSubject').innerText = `Subjects: ${displayedSubjects.join(', ')}`;
+        if (subjects.length > 2) {
+            document.getElementById('quizSubject').innerHTML += `... <span onclick="showAllSubjects()" style="color: blue; cursor: pointer;">etc.</span>`;
+        }
 
         database.ref('quizzes').once('value').then(snapshot => {
             const questions = [];
@@ -166,92 +280,155 @@
                         question: quizData.question || "",
                         options: quizData.options,
                         answer: parseInt(quizData.correctOption),
-                        explanation: quizData.explanation || "No explanation provided."
+                        explanation: quizData.explanation || "No explanation provided.",
+                        imageUrl: quizData.imageUrl || null,
+                        id: childSnapshot.key
                     });
                 }
             });
 
             selectedQuestions = questions.sort(() => 0.5 - Math.random()).slice(0, numQuestions);
-            displayQuestion(currentQuestionIndex);
 
-            document.getElementById('submitBtn').onclick = function() {
-                showResults();
+            const quizForm = document.getElementById('quizForm');
+            selectedQuestions.forEach((q, index) => {
+                quizForm.innerHTML += `
+                    <div class="question">
+                        <strong>${index + 1}. ${q.question ? q.question : '<img src="' + q.imageUrl + '" alt="Question Image" onclick="zoomImage(\'' + q.imageUrl + '\')">'} </strong>
+                        ${q.options.map((opt, i) => `
+                            <label>
+                                <input type="radio" name="question${index}" value="${i + 1}"> ${opt}
+                            </label>
+                        `).join('')}
+                        <button type="button" onclick="reportQuestion('${q.id}')">
+                            <i class="fas fa-exclamation-triangle" style="color: orange;"></i>
+                        </button>
+                    </div>
+                `;
+            });
+
+            document.getElementById('submitBtn').onclick = function(event) {
+                event.preventDefault();
+                userAnswers = getUserAnswers(selectedQuestions);
+                const score = calculateResults(selectedQuestions, userAnswers);
+                showResults(selectedQuestions, userAnswers, score);
             };
         });
 
-        function displayQuestion(index) {
-            const question = selectedQuestions[index];
-            const questionDisplay = document.getElementById('questionDisplay');
-            questionDisplay.innerHTML = `
-                <div class="question">
-                    <strong>${index + 1}. ${question.question}</strong>
-                    ${question.options.map((opt, i) => `
-                        <label>
-                            <input type="radio" name="question${index}" value="${i + 1}" onclick="handleAnswerSelection(${index}, ${i + 1})"> ${opt}
-                        </label>
-                    `).join('')}
-                    <div id="feedback${index}" class="feedback" style="display: none;"></div>
-                </div>
-            `;
-
-            document.getElementById('nextBtn').style.display = index < selectedQuestions.length - 1 ? 'inline' : 'none';
-            document.getElementById('submitBtn').style.display = index === selectedQuestions.length - 1 ? 'inline' : 'none';
+        function reportQuestion(questionId) {
+            document.getElementById('submitReportBtn').onclick = function() {
+                const reportText = document.getElementById('reportText').value;
+                submitReport(questionId, reportText);
+            };
+            document.getElementById('reportPopup').style.display = 'block';
         }
 
-        function handleAnswerSelection(questionIndex, selectedValue) {
-            const feedback = document.getElementById(`feedback${questionIndex}`);
-            const question = selectedQuestions[questionIndex];
-            const correctAnswer = question.answer;
+        function submitReport(questionId, reportText) {
+            if (reportText.trim() === "") {
+                alert("Please provide a report.");
+                return;
+            }
 
-            feedback.innerHTML = `
-                <strong>Your answer: ${selectedValue === correctAnswer ? 'Correct' : 'Incorrect'}</strong><br>
-                <strong>Correct answer: ${question.options[correctAnswer - 1]}</strong>
-                <p>${question.explanation}</p>
-            `;
-            feedback.className = selectedValue === correctAnswer ? 'feedback correct' : 'feedback incorrect';
-            feedback.style.display = 'block';
+            const reportData = {
+                questionId,
+                reportText,
+                reportedBy: auth.currentUser.email,
+                timestamp: firebase.database.ServerValue.TIMESTAMP
+            };
+
+            database.ref('reports').push(reportData)
+                .then(() => {
+                    alert("Report submitted successfully.");
+                    closeReportPopup();
+                })
+                .catch(error => {
+                    console.error('Error submitting report:', error);
+                });
         }
 
-        function nextQuestion() {
-            currentQuestionIndex++;
-            displayQuestion(currentQuestionIndex);
+        function closeReportPopup() {
+            document.getElementById('reportPopup').style.display = 'none';
+            document.getElementById('reportText').value = "";
         }
 
-        function showResults() {
-            userAnswers = selectedQuestions.map((_, index) => {
+        function getUserAnswers(questions) {
+            return questions.map((_, index) => {
                 const selectedOption = document.querySelector(`input[name="question${index}"]:checked`);
                 return selectedOption ? parseInt(selectedOption.value) : null;
             });
+        }
 
-            const total = selectedQuestions.length;
-            const correct = userAnswers.filter((answer, index) => answer === selectedQuestions[index].answer).length;
+        function calculateResults(questions, userAnswers) {
+            return questions.reduce((score, q, index) => {
+                return score + (userAnswers[index] === q.answer ? 1 : 0);
+            }, 0);
+        }
+
+        function showResults(questions, userAnswers, score) {
+            const total = questions.length;
+            const correct = questions.filter((q, index) => userAnswers[index] === q.answer).length;
+            const incorrect = total - correct;
+            const missed = userAnswers.filter(answer => answer === null).length;
             const percentage = ((correct / total) * 100).toFixed(2);
 
             document.getElementById('resultSummary').innerHTML = `
                 <p>Total Questions: ${total}</p>
-                <p>Correct: ${correct}</p>
-                <p>Score: ${correct} out of ${total} (${percentage}%)</p>
+                <p>Correct: <span class="correct">${correct}</span></p>
+                <p>Incorrect: <span class="incorrect">${incorrect}</span></p>
+                <p>Missed: ${missed}</p>
+                <p>Total Score: ${score} out of ${total} (${percentage}%)</p>
             `;
 
-            document.getElementById('questionDisplay').style.display = 'none';
-            document.getElementById('nextBtn').style.display = 'none';
+            saveQuiz(questions, userAnswers, score);
+
+            document.getElementById('quizForm').style.display = 'none';
             document.getElementById('submitBtn').style.display = 'none';
             document.getElementById('result').style.display = 'block';
-
-            saveResults(correct, total);
+            document.getElementById('viewDetailBtn').style.display = 'inline';
         }
 
-        function saveResults(correct, total) {
-            const userId = auth.currentUser.uid;
-            const resultRef = database.ref('results/' + userId);
-            const newResult = {
-                date: new Date().toISOString(),
-                score: correct,
-                total: total
+        function saveQuiz(questions, userAnswers, score) {
+            const user = auth.currentUser;
+            if (!user) {
+                alert("User not authenticated.");
+                return;
+            }
+
+            const date = new Date();
+            const dateString = date.toISOString().split('T')[0];
+            const timeString = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            examID = `${dateString}-quiz-${date.getTime()}`;
+
+            const subjectName = `Conducted on: ${dateString}, at ${timeString}`;
+
+            const examData = {
+                examID,
+                subject: subjectName,
+                date: dateString,
+                score,
+                email: user.email,
+                userAnswers,
+                questions: questions.map(q => ({
+                    id: q.id,
+                    question: q.question,
+                    options: q.options,
+                    correctAnswer: q.answer,
+                    explanation: q.explanation,
+                    imageUrl: q.imageUrl
+                }))
             };
 
-            resultRef.push(newResult);
+            database.ref(`users/${user.uid}/exams/${examID}`).set(examData)
+                .then(() => {
+                    console.log(`Quiz saved successfully with ID: ${examID}`);
+                })
+                .catch(error => {
+                    console.error('Error saving quiz:', error);
+                });
         }
+
+        document.getElementById('viewDetailBtn').onclick = function() {
+            window.location.href = `detail.html?examID=${examID}`;
+        };
 
         function toggleMenu() {
             const menuContent = document.getElementById('menuContent');
@@ -267,9 +444,24 @@
             }).catch(console.error);
         }
 
-        document.getElementById('viewDetailBtn').onclick = function() {
-            alert("Details of answers and explanations can be implemented here.");
-        };
+        function zoomImage(imageUrl) {
+            const zoomImage = document.getElementById('zoomedImg');
+            zoomImage.src = imageUrl;
+            document.getElementById('zoomImage').style.display = 'flex';
+        }
+
+        function closeZoom() {
+            document.getElementById('zoomImage').style.display = 'none';
+        }
+
+        function showAllSubjects() {
+            document.getElementById('allSubjects').innerText = subjects.join(', ');
+            document.getElementById('subjectPopup').style.display = 'block';
+        }
+
+        function closePopup() {
+            document.getElementById('subjectPopup').style.display = 'none';
+        }
     </script>
 </body>
 </html>
