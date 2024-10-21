@@ -398,12 +398,11 @@
                 .catch(error => {
                     console.error('Error saving quiz:', error);
                 });
-        }
+                }
 
         document.getElementById('viewDetailBtn').onclick = function() {
             window.location.href = `detail.html?examID=${examID}`;
         };
-
         function toggleMenu() {
             const menuContent = document.getElementById('menuContent');
             menuContent.style.display = menuContent.style.display === 'block' ? 'none' : 'block';
