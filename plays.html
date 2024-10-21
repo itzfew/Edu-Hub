@@ -252,14 +252,18 @@
                 if (user.photoURL) {
                     profilePic.style.backgroundImage = `url(${user.photoURL})`;
                     profilePic.style.backgroundSize = "cover";
+                    profilePic.innerHTML = ''; // Clear icon if photoURL is present
                 }
+
+                fetchAttemptedExams(user.uid);
+                fetchSubjects();
             } else {
-                window.location.href = "login.html";
+                window.location.href = 'login.html';
             }
         });
 
         const urlParams = new URLSearchParams(window.location.search);
-        const subjects = urlParams.get('subjects').split(',');
+        const subjects = urlParams.get('subjects').split(','); 
         const numQuestions = parseInt(urlParams.get('numQuestions'));
         let selectedQuestions = [];
         let currentQuestionIndex = 0;
@@ -370,7 +374,6 @@
             const date = new Date();
             const dateString = date.toISOString().split('T')[0];
             const timeString = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
             const examID = `${dateString}-quiz-${date.getTime()}`;
             const subjectName = `Conducted on: ${dateString}, at ${timeString}`;
 
