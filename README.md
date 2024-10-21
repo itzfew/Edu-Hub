@@ -1,9 +1,29 @@
-This is question#
-Option 1#
-Option2#
-Option3#
-Option4#
-2# (this is correct index)
+### Question 1
+- **Option 1**
+- **Option 2**
+- **Option 3**
+- **Option 4**
+- Correct Answer: Option 2
 
-Question next#
-.... and so on...   see this ... 
+### Question 2
+- **Option 1**
+- **Option 2**
+- **Option 3**
+- **Option 4**
+- Correct Answer: Option 3
+
+### Question 3
+- **Option 1**
+- **Option 2**
+- **Option 3**
+- **Option 4**
+- Correct Answer: Option 1
+
+### Question 4
+- **Option 1**
+- **Option 2**
+- **Option 3**
+- **Option 4**
+- Correct Answer: Option 4
+
+add # between every
