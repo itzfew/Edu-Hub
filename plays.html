@@ -88,7 +88,7 @@
 <body>
     <div class="menu">
         <i class="fas fa-bars menu-icon" onclick="toggleMenu()"></i>
-        <div class="menu-content" id="menuContent">
+        <div class="menu-content" id="menuContent" style="display: none;">
             <div id="profileInfo" class="profile-info">
                 <div id="profilePic" class="profile-pic"><i class="fas fa-user"></i></div>
                 <span id="userName"></span>
@@ -244,6 +244,10 @@
                 url: window.location.href
             }).catch(console.error);
         }
+
+        document.getElementById('viewDetailBtn').onclick = function() {
+            alert("Details of answers and explanations can be implemented here.");
+        };
     </script>
 </body>
 </html>
