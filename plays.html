@@ -8,7 +8,7 @@
     <script src="https://www.gstatic.com/firebasejs/7.20.0/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/7.20.0/firebase-database.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
         /* CSS styles remain unchanged */
@@ -115,6 +115,7 @@
             background-color: #007bff;
             margin: 20px 0;
         }
+        /* Styles for the zoom feature */
         .zoom {
             display: none;
             position: fixed;
@@ -133,12 +134,14 @@
             object-fit: contain;
             border-radius: 8px;
         }
+        /* Styles for the question images */
         .question img {
-            width: 70%;
-            max-width: 600px;
-            height: auto;
-            cursor: pointer;
+            width: 70%; /* Adjust this value to make the images smaller */
+            max-width: 600px; /* Maximum width of the images */
+            height: auto; /* Maintain aspect ratio */
+            cursor: pointer; /* Indicate clickable images */
         }
+        /* Popup styles */
         .popup {
             display: none;
             position: fixed;
@@ -199,7 +202,7 @@
     <div class="quiz-container">
         <form id="quizForm"></form>
         <button id="submitBtn">Submit Answers</button>
-        <button id="downloadPdfBtn">Download PDF</button> <!-- Button for PDF download -->
+        <button id="pdfBtn" onclick="generatePDF()" style="margin-left: 10px;">Generate PDF</button>
         <div id="result" class="result">
             <h2>Your Results</h2>
             <p id="resultSummary"></p>
@@ -245,92 +248,244 @@
 
         auth.onAuthStateChanged(user => {
             if (user) {
-                const userName = user.displayName || user.email.split('@')[0];
+                const userName = user.displayName || user.email.split('@')[0]; // Use displayName or first part of email
                 document.getElementById('userName').innerText = userName;
 
                 const profilePic = document.getElementById('profilePic');
-                profilePic.style.backgroundColor = '#007bff'; // Assign a default color
-                profilePic.innerHTML = user.photoURL ? `<img src="${user.photoURL}" alt="Profile" style="width: 100%; height: 100%; border-radius: 50%;">` : `<i class="fas fa-user"></i>`;
+                if (user.photoURL) {
+                    profilePic.style.backgroundImage = `url(${user.photoURL})`;
+                    profilePic.style.backgroundSize = 'cover';
+                    profilePic.innerHTML = ''; // Clear icon if photoURL is present
+                }
+
+                fetchAttemptedExams(user.uid);
+                fetchSubjects();
             } else {
-                document.getElementById('userName').innerText = 'Guest';
-                document.getElementById('profilePic').innerHTML = `<i class="fas fa-user"></i>`;
+                window.location.href = 'login.html';
             }
         });
 
+        const urlParams = new URLSearchParams(window.location.search);
+        const subjects = urlParams.get('subjects').split(','); 
+        const numQuestions = parseInt(urlParams.get('numQuestions'));
         let selectedQuestions = [];
+        let examID = "";
+        let userAnswers = [];
 
-        // Function to display questions
-        function displayQuestions(questions) {
+        const displayedSubjects = subjects.slice(0, 2);
+        document.getElementById('quizSubject').innerText = `Subjects: ${displayedSubjects.join(', ')}`;
+        if (subjects.length > 2) {
+            document.getElementById('quizSubject').innerHTML += `... <span onclick="showAllSubjects()" style="color: blue; cursor: pointer;">etc.</span>`;
+        }
+
+        database.ref('quizzes').once('value').then(snapshot => {
+            const questions = [];
+            snapshot.forEach(childSnapshot => {
+                const quizData = childSnapshot.val();
+                if (subjects.includes(quizData.subjectName)) {
+                    questions.push({
+                        question: quizData.question || "",
+                        options: quizData.options,
+                        answer: parseInt(quizData.correctOption),
+                        explanation: quizData.explanation || "No explanation provided.",
+                        imageUrl: quizData.imageUrl || null,
+                        id: childSnapshot.key
+                    });
+                }
+            });
+
+            selectedQuestions = questions.sort(() => 0.5 - Math.random()).slice(0, numQuestions);
+
             const quizForm = document.getElementById('quizForm');
-            quizForm.innerHTML = ''; // Clear existing questions
-            questions.forEach((q, index) => {
-                const questionDiv = document.createElement('div');
-                questionDiv.classList.add('question');
-                questionDiv.innerHTML = `<strong>${index + 1}. ${q.question}</strong>`;
-                q.options.forEach((option, i) => {
-                    questionDiv.innerHTML += `
-                        <label>
-                            <input type="radio" name="q${index}" value="${i}"> ${option}
-                        </label>
-                    `;
-                });
-                quizForm.appendChild(questionDiv);
+            selectedQuestions.forEach((q, index) => {
+                quizForm.innerHTML += `
+                    <div class="question">
+                        <strong>${index + 1}. ${q.question ? q.question : '<img src="' + q.imageUrl + '" alt="Question Image" onclick="zoomImage(\'' + q.imageUrl + '\')">'} </strong>
+                        ${q.options.map((opt, i) => `
+                            <label>
+                                <input type="radio" name="question${index}" value="${i + 1}"> ${opt}
+                            </label>
+                        `).join('')}
+                        <button type="button" onclick="reportQuestion('${q.id}')">
+                            <i class="fas fa-exclamation-triangle" style="color: orange;"></i>
+                        </button>
+                    </div>
+                `;
             });
-            selectedQuestions = questions; // Store selected questions
-        }
 
-        document.getElementById('downloadPdfBtn').onclick = function() {
-            downloadQuestionsAsPDF(selectedQuestions);
-        };
+            document.getElementById('submitBtn').onclick = function(event) {
+                event.preventDefault();
+                userAnswers = getUserAnswers(selectedQuestions);
+                const score = calculateResults(selectedQuestions, userAnswers);
+                showResults(selectedQuestions, userAnswers, score);
+            };
+        });
 
-        function downloadQuestionsAsPDF(questions) {
+        function generatePDF() {
             const { jsPDF } = window.jspdf;
-            const pdf = new jsPDF();
+            const doc = new jsPDF();
 
-            pdf.setFont("Helvetica", "normal");
-            pdf.setFontSize(12);
-            pdf.text("Quiz Questions", 10, 10);
-
-            questions.forEach((q, index) => {
-                pdf.text(`${index + 1}. ${q.question}`, 10, 20 + (index * 20));
+            doc.setFontSize(12);
+            selectedQuestions.forEach((q, index) => {
+                doc.text(`${index + 1}. ${q.question}`, 10, 10 + index * 30);
                 q.options.forEach((opt, i) => {
-                    pdf.text(`   ${String.fromCharCode(65 + i)}. ${opt}`, 15, 25 + (index * 20));
+                    doc.text(`   ${String.fromCharCode(65 + i)}. ${opt}`, 20, 15 + index * 30);
                 });
+                doc.text('', 10, 20 + index * 30); // Empty line
             });
 
-            pdf.save("quiz-questions.pdf");
+            doc.save('quiz_questions.pdf');
         }
 
-        // Additional existing JavaScript code...
+        function reportQuestion(questionId) {
+            document.getElementById('submitReportBtn').onclick = function() {
+                const reportText = document.getElementById('reportText').value;
+                submitReport(questionId, reportText);
+            };
+            document.getElementById('reportPopup').style.display = 'block';
+        }
+
+        function submitReport(questionId, reportText) {
+            if (reportText.trim() === "") {
+                alert("Please provide a report.");
+                return;
+            }
+
+            const reportData = {
+                questionId,
+                reportText,
+                reportedBy: auth.currentUser.email,
+                timestamp: firebase.database.ServerValue.TIMESTAMP
+            };
+
+            database.ref('reports').push(reportData)
+                .then(() => {
+                    alert("Report submitted successfully.");
+                    closeReportPopup();
+                })
+                .catch(error => {
+                    console.error('Error submitting report:', error);
+                });
+        }
+
+        function closeReportPopup() {
+            document.getElementById('reportPopup').style.display = 'none';
+            document.getElementById('reportText').value = ""; // Clear the textarea
+        }
+
+        function getUserAnswers(questions) {
+            return questions.map((_, index) => {
+                const selectedOption = document.querySelector(`input[name="question${index}"]:checked`);
+                return selectedOption ? parseInt(selectedOption.value) : null;
+            });
+        }
+
+        function calculateResults(questions, userAnswers) {
+            return questions.reduce((score, q, index) => {
+                return score + (userAnswers[index] === q.answer ? 1 : 0);
+            }, 0);
+        }
+
+        function showResults(questions, userAnswers, score) {
+            const total = questions.length;
+            const correct = questions.filter((q, index) => userAnswers[index] === q.answer).length;
+            const incorrect = total - correct;
+            const missed = userAnswers.filter(answer => answer === null).length;
+            const percentage = ((correct / total) * 100).toFixed(2);
+
+            document.getElementById('resultSummary').innerHTML = `
+                <p>Total Questions: ${total}</p>
+                <p>Correct: <span class="correct">${correct}</span></p>
+                <p>Incorrect: <span class="incorrect">${incorrect}</span></p>
+                <p>Missed: ${missed}</p>
+                <p>Total Score: ${score} out of ${total} (${percentage}%)</p>
+            `;
+
+            saveQuiz(questions, userAnswers, score);
+
+            document.getElementById('quizForm').style.display = 'none';
+            document.getElementById('submitBtn').style.display = 'none';
+            document.getElementById('pdfBtn').style.display = 'inline';
+            document.getElementById('result').style.display = 'block';
+            document.getElementById('viewDetailBtn').style.display = 'inline';
+        }
+
+        function saveQuiz(questions, userAnswers, score) {
+            const user = auth.currentUser;
+            if (!user) {
+                alert("User not authenticated.");
+                return;
+            }
+
+            const date = new Date();
+            const dateString = date.toISOString().split('T')[0];
+            const timeString = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            examID = `${dateString}-quiz-${date.getTime()}`;
+
+            const subjectName = `Conducted on: ${dateString}, at ${timeString}`;
+
+            const examData = {
+                examID,
+                subject: subjectName,
+                date: dateString,
+                score,
+                email: user.email,
+                userAnswers,
+                questions: questions.map(q => ({
+                    id: q.id,
+                    question: q.question,
+                    options: q.options,
+                    correctAnswer: q.answer,
+                    explanation: q.explanation,
+                    imageUrl: q.imageUrl
+                }))
+            };
+
+            database.ref(`users/${user.uid}/exams/${examID}`).set(examData)
+                .then(() => {
+                    console.log(`Quiz saved successfully with ID: ${examID}`);
+                })
+                .catch(error => {
+                    console.error('Error saving quiz:', error);
+                });
+        }
+
+        document.getElementById('viewDetailBtn').onclick = function() {
+            window.location.href = `detail.html?examID=${examID}`;
+        };
 
         function toggleMenu() {
             const menuContent = document.getElementById('menuContent');
             menuContent.style.display = menuContent.style.display === 'block' ? 'none' : 'block';
         }
 
+        function shareLink() {
+            const shareText = 'Check out my quiz results!';
+            navigator.share({
+                title: 'Quiz Results',
+                text: shareText,
+                url: window.location.href
+            }).catch(console.error);
+        }
+
+        function zoomImage(imageUrl) {
+            const zoomImage = document.getElementById('zoomedImg');
+            zoomImage.src = imageUrl;
+            document.getElementById('zoomImage').style.display = 'flex';
+        }
+
         function closeZoom() {
             document.getElementById('zoomImage').style.display = 'none';
+        }
+
+        function showAllSubjects() {
+            document.getElementById('allSubjects').innerText = subjects.join(', ');
+            document.getElementById('subjectPopup').style.display = 'block';
         }
 
         function closePopup() {
             document.getElementById('subjectPopup').style.display = 'none';
         }
-
-        function closeReportPopup() {
-            document.getElementById('reportPopup').style.display = 'none';
-        }
-
-        function shareLink() {
-            const shareData = {
-                title: 'Quiz App',
-                text: 'Check out this amazing quiz app!',
-                url: window.location.href
-            };
-            navigator.share(shareData).catch(console.error);
-        }
-
-        // Fetch and display questions
-        // Add your logic to fetch questions from Firebase and call displayQuestions(questions)
     </script>
 </body>
 </html>
