@@ -7,7 +7,6 @@
     <script src="https://www.gstatic.com/firebasejs/7.20.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/7.20.0/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/7.20.0/firebase-database.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
@@ -70,89 +69,23 @@
         .incorrect {
             color: red;
         }
-        .menu {
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            z-index: 1000;
-        }
-        .menu-icon {
-            font-size: 24px;
-            cursor: pointer;
-            color: #333;
-        }
         footer {
             text-align: center;
             color: #333;
             padding: 10px;
             margin-top: auto;
         }
-        .zoom {
-            display: none;
-            position: fixed;
-            z-index: 1000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.8);
-            justify-content: center;
-            align-items: center;
-        }
-        .zoom img {
-            max-width: 90%;
-            max-height: 90%;
-            object-fit: contain;
-            border-radius: 8px;
-        }
-        .popup {
-            display: none;
-            position: fixed;
-            z-index: 1001;
-            left: 50%;
-            top: 50%;
-            transform: translate(-50%, -50%);
-            background-color: #fff;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.2);
-        }
-        .profile-info {
-            display: flex;
-            align-items: center;
-            padding: 12px;
-        }
-        .profile-pic {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            margin-right: 10px;
-            background-color: #ddd;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-size: 20px;
-            color: white;
+        .timer {
+            font-size: 18px;
+            margin-bottom: 20px;
             text-align: center;
         }
     </style>
 </head>
 <body>
-    <div class="menu">
-        <i class="fas fa-bars menu-icon" onclick="toggleMenu()"></i>
-        <div class="menu-content" id="menuContent">
-            <div id="profileInfo" class="profile-info">
-                <div id="profilePic" class="profile-pic"><i class="fas fa-user"></i></div>
-                <span id="userName"></span>
-            </div>
-            <a href="https://t.me/neetpw01" target="_blank"><i class="fab fa-telegram"></i> Telegram</a>
-            <a href="path/to/apk" download><i class="fas fa-download"></i> Download APK</a>
-            <button onclick="shareLink()"><i class="fas fa-share"></i> Share</button>
-        </div>
-    </div>
-
     <h1 id="quizSubject"></h1>
     <div class="quiz-container">
+        <div id="timer" class="timer"></div>
         <form id="quizForm"></form>
         <button id="submitBtn">Submit Answers</button>
         <div id="result" class="result">
@@ -161,25 +94,7 @@
             <button id="viewDetailBtn" style="display: none;">View Details</button>
         </div>
     </div>
-
     <footer id="footer"></footer>
-
-    <div id="zoomImage" class="zoom" onclick="closeZoom()">
-        <img id="zoomedImg" alt="Zoomed Image">
-    </div>
-
-    <div id="subjectPopup" class="popup">
-        <div class="popup-header">All Selected Subjects</div>
-        <div id="allSubjects"></div>
-        <div class="popup-close" onclick="closePopup()">Close</div>
-    </div>
-
-    <div id="reportPopup" class="popup">
-        <div class="popup-header">Report Question</div>
-        <textarea id="reportText" placeholder="Please describe the issue..." rows="4" style="width: 100%;"></textarea>
-        <button id="submitReportBtn">Submit Report</button>
-        <div class="popup-close" onclick="closeReportPopup()">Close</div>
-    </div>
 
     <script>
         const firebaseConfig = {
@@ -197,18 +112,13 @@
         const auth = firebase.auth();
         const database = firebase.database();
 
+        let timer; // Timer variable
+        let timeLeft = 300; // Set time limit (e.g., 300 seconds)
+        let selectedQuestions = [];
+        let userAnswers = [];
+
         auth.onAuthStateChanged(user => {
             if (user) {
-                const userName = user.displayName || user.email.split('@')[0];
-                document.getElementById('userName').innerText = userName;
-
-                const profilePic = document.getElementById('profilePic');
-                if (user.photoURL) {
-                    profilePic.style.backgroundImage = `url(${user.photoURL})`;
-                    profilePic.style.backgroundSize = 'cover';
-                    profilePic.innerHTML = '';
-                }
-
                 fetchSubjects();
             } else {
                 window.location.href = 'login.html';
@@ -216,17 +126,10 @@
         });
 
         const urlParams = new URLSearchParams(window.location.search);
-        const subjects = urlParams.get('subjects').split(',');
+        const subjects = urlParams.get('subjects').split(','); 
         const numQuestions = parseInt(urlParams.get('numQuestions'));
-        let selectedQuestions = [];
-        let examID = "";
-        let userAnswers = [];
 
-        const displayedSubjects = subjects.slice(0, 2);
-        document.getElementById('quizSubject').innerText = `Subjects: ${displayedSubjects.join(', ')}`;
-        if (subjects.length > 2) {
-            document.getElementById('quizSubject').innerHTML += `... <span onclick="showAllSubjects()" style="color: blue; cursor: pointer;">etc.</span>`;
-        }
+        document.getElementById('quizSubject').innerText = `Subjects: ${subjects.join(', ')}`;
 
         database.ref('quizzes').once('value').then(snapshot => {
             const questions = [];
@@ -238,147 +141,85 @@
                         options: quizData.options,
                         answer: parseInt(quizData.correctOption),
                         explanation: quizData.explanation || "No explanation provided.",
-                        imageUrl: quizData.imageUrl || null
+                        id: childSnapshot.key
                     });
                 }
             });
 
             selectedQuestions = questions.sort(() => 0.5 - Math.random()).slice(0, numQuestions);
-            loadQuestions();
+            renderQuestions();
+            startTimer();
         });
 
-        function loadQuestions() {
+        function renderQuestions() {
             const quizForm = document.getElementById('quizForm');
             selectedQuestions.forEach((q, index) => {
-                const questionDiv = document.createElement('div');
-                questionDiv.className = 'question';
-                questionDiv.innerHTML = `
-                    <p>${index + 1}. ${q.question}</p>
-                    ${q.imageUrl ? `<img src="${q.imageUrl}" alt="Question Image" style="max-width: 100%;" onclick="zoomImage('${q.imageUrl}')">` : ''}
+                quizForm.innerHTML += `
+                    <div class="question">
+                        <strong>${index + 1}. ${q.question}</strong>
+                        ${q.options.map((opt, i) => `
+                            <label>
+                                <input type="radio" name="question${index}" value="${i + 1}" onchange="giveFeedback(${index}, ${i + 1})"> ${opt}
+                            </label>
+                        `).join('')}
+                    </div>
                 `;
-                q.options.forEach((option, i) => {
-                    questionDiv.innerHTML += `
-                        <label>
-                            <input type="radio" name="question${index}" value="${i}">
-                            ${String.fromCharCode(97 + i)}) ${option}
-                        </label>
-                    `;
-                });
-                quizForm.appendChild(questionDiv);
+            });
+
+            document.getElementById('submitBtn').onclick = function(event) {
+                event.preventDefault();
+                userAnswers = getUserAnswers(selectedQuestions);
+                showResults();
+            };
+        }
+
+        function startTimer() {
+            timer = setInterval(() => {
+                if (timeLeft <= 0) {
+                    clearInterval(timer);
+                    alert('Time is up!');
+                    document.getElementById('submitBtn').click();
+                } else {
+                    document.getElementById('timer').innerText = `Time Left: ${Math.floor(timeLeft / 60)}:${(timeLeft % 60).toString().padStart(2, '0')}`;
+                    timeLeft--;
+                }
+            }, 1000);
+        }
+
+        function giveFeedback(questionIndex, selectedOption) {
+            const question = selectedQuestions[questionIndex];
+            const correctAnswer = question.answer;
+
+            if (selectedOption === correctAnswer) {
+                alert('Correct!');
+            } else {
+                alert(`Incorrect! The correct answer was: ${question.options[correctAnswer - 1]}`);
+            }
+        }
+
+        function getUserAnswers(questions) {
+            return questions.map((_, index) => {
+                const selectedOption = document.querySelector(`input[name="question${index}"]:checked`);
+                return selectedOption ? parseInt(selectedOption.value) : null;
             });
         }
 
-        document.getElementById('submitBtn').addEventListener('click', function(event) {
-            event.preventDefault();
-            userAnswers = [];
-            selectedQuestions.forEach((_, index) => {
-                const selectedOption = document.querySelector(`input[name="question${index}"]:checked`);
-                userAnswers.push(selectedOption ? parseInt(selectedOption.value) : null);
-            });
-            showResults(selectedQuestions, userAnswers);
-        });
-
-        function showResults(questions, userAnswers) {
-            const total = questions.length;
-            const correct = questions.filter((q, index) => userAnswers[index] === q.answer).length;
-            const incorrect = total - correct;
-            const missed = userAnswers.filter(answer => answer === null).length;
+        function showResults() {
+            clearInterval(timer);
+            const total = selectedQuestions.length;
+            const correct = selectedQuestions.filter((q, index) => userAnswers[index] === q.answer).length;
             const percentage = ((correct / total) * 100).toFixed(2);
 
             document.getElementById('resultSummary').innerHTML = `
                 <p>Total Questions: ${total}</p>
                 <p>Correct: <span class="correct">${correct}</span></p>
-                <p>Incorrect: <span class="incorrect">${incorrect}</span></p>
-                <p>Missed: ${missed}</p>
                 <p>Total Score: ${correct} out of ${total} (${percentage}%)</p>
             `;
 
-            generatePDF(questions, userAnswers);
             document.getElementById('quizForm').style.display = 'none';
             document.getElementById('submitBtn').style.display = 'none';
             document.getElementById('result').style.display = 'block';
-            document.getElementById('viewDetailBtn').style.display = 'inline';
         }
-
-        function generatePDF(questions, userAnswers) {
-            const { jsPDF } = window.jspdf;
-            const pdf = new jsPDF();
-
-            const totalQuestions = questions.length;
-            const pageHeight = pdf.internal.pageSize.height;
-            let yPosition = 10;
-            const margin = 10;
-
-            pdf.text('Answer Index:', margin, yPosition);
-            let answerIndex = questions.map((q, index) => `${index + 1}: ${userAnswers[index] === q.answer ? 'Correct' : 'Incorrect'}`).join(', ');
-            yPosition += 10;
-            pdf.text(answerIndex, margin, yPosition);
-            yPosition += 10;
-
-            questions.forEach((q, i) => {
-                pdf.text(`${i + 1}. ${q.question}`, margin, yPosition);
-                yPosition += 5;
-                q.options.forEach((option, index) => {
-                    pdf.text(`  ${String.fromCharCode(97 + index)}) ${option}`, margin + 10, yPosition);
-                    yPosition += 5;
-                });
-
-                if (yPosition > pdf.internal.pageSize.height - margin) {
-                    pdf.addPage();
-                    yPosition = margin;
-                }
-                yPosition += 5;
-            });
-
-            pdf.save('quiz_results.pdf');
-        }
-
-        function toggleMenu() {
-            const menuContent = document.getElementById('menuContent');
-            menuContent.style.display = menuContent.style.display === 'block' ? 'none' : 'block';
-        }
-
-        function showAllSubjects() {
-            const allSubjects = subjects.map(subject => `<li>${subject}</li>`).join('');
-            document.getElementById('allSubjects').innerHTML = `<ul>${allSubjects}</ul>`;
-            document.getElementById('subjectPopup').style.display = 'block';
-        }
-
-        function closePopup() {
-            document.getElementById('subjectPopup').style.display = 'none';
-        }
-
-        function zoomImage(imageUrl) {
-            const zoomImage = document.getElementById('zoomedImg');
-            zoomImage.src = imageUrl;
-            document.getElementById('zoomImage').style.display = 'flex';
-        }
-
-        function closeZoom() {
-            document.getElementById('zoomImage').style.display = 'none';
-        }
-
-        function shareLink() {
-            const shareableLink = window.location.href;
-            navigator.clipboard.writeText(shareableLink).then(() => {
-                alert('Link copied to clipboard!');
-            });
-        }
-
-        fetchSubjects = () => {
-            database.ref('subjects').once('value').then(snapshot => {
-                let subjectsList = [];
-                snapshot.forEach(childSnapshot => {
-                    subjectsList.push(childSnapshot.val().subjectName);
-                });
-                subjectsList.forEach(subject => {
-                    const option = document.createElement('option');
-                    option.value = subject;
-                    option.textContent = subject;
-                    document.getElementById('subjectSelect').appendChild(option);
-                });
-            });
-        };
     </script>
 </body>
 </html>
