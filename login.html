@@ -14,16 +14,14 @@
             padding: 20px;
             display: flex;
             flex-direction: column;
-            align-items: center; /* Center horizontally */
+            align-items: center;
         }
 
         .form-section, .profile-section {
-            padding: 20px;
             width: 90%;
             max-width: 400px;
             text-align: center;
             margin-bottom: 20px;
-            background: none; /* Remove background */
         }
 
         h1, h3 {
@@ -140,6 +138,16 @@
         .attempt a:hover {
             text-decoration: underline;
         }
+
+        .home-btn {
+            background-color: #007bff;
+            color: white;
+            margin-top: 20px;
+        }
+
+        .home-btn:hover {
+            background-color: #0056b3;
+        }
     </style>
 </head>
 <body>
@@ -169,6 +177,8 @@
         <h2 id="profileName">User</h2>
         <p id="profileEmail">No email available</p>
 
+        <button class="home-btn" id="homeBtn"><i class="fas fa-home"></i> Go to Home</button>
+
         <div class="attempts-container" id="attemptsContainer">
             <h3>Attempted Tests</h3>
             <div id="attemptsList"></div>
@@ -180,14 +190,14 @@
     <script src="https://www.gstatic.com/firebasejs/7.20.0/firebase-database.js"></script>
     <script>
         const firebaseConfig = {
-            apiKey: "AIzaSyDIWtVfoGIWQoRVe36v6g6S3slTRRYUAgk",
-            authDomain: "quizes-3028d.firebaseapp.com",
-            databaseURL: "https://quizes-3028d-default-rtdb.firebaseio.com",
-            projectId: "quizes-3028d",
-            storageBucket: "quizes-3028d.appspot.com",
-            messagingSenderId: "624591251031",
-            appId: "1:624591251031:web:e093472f24fdeb29fc2512",
-            measurementId: "G-QMZK5Y6769"
+            apiKey: "AIzaSyAEHSaneKSBlpr5ZdDUJgECtp52h4bzP_Y",
+            authDomain: "studymaterialapp-ba546.firebaseapp.com",
+            databaseURL: "https://studymaterialapp-ba546-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "studymaterialapp-ba546",
+            storageBucket: "studymaterialapp-ba546.appspot.com",
+            messagingSenderId: "686553235115",
+            appId: "1:686553235115:web:690cdfa7c07994b349c1ee",
+            measurementId: "G-7C8K1P0H6W"
         };
 
         firebase.initializeApp(firebaseConfig);
@@ -200,7 +210,7 @@
                 // User is signed in, show profile information
                 document.getElementById('loginContainer').style.display = 'none';
                 document.getElementById('profileContainer').style.display = 'block';
-                document.getElementById('profileName').innerText = user.displayName || 'User';
+                document.getElementById('profileName').innerText = user.displayName || user.email.split('@')[0];
                 document.getElementById('profileEmail').innerText = user.email || 'No email available';
                 document.getElementById('profilePic').src = user.photoURL || 'https://via.placeholder.com/70';
                 fetchAttemptedTests(user.uid); // Fetch attempted tests for logged-in user
@@ -251,8 +261,6 @@
             const provider = new firebase.auth.GoogleAuthProvider();
             auth.signInWithPopup(provider)
                 .then(result => {
-                    // User is signed in
-                    const user = result.user;
                     showMessage("Login successful!", 'success');
                 })
                 .catch(error => {
@@ -281,6 +289,10 @@
             } else {
                 showMessage("Please enter your email first.", 'error');
             }
+        };
+
+        document.getElementById('homeBtn').onclick = function() {
+            window.location.href = 'index.html';
         };
 
         function showMessage(message, type) {
