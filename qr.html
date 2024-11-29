@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QR Code Generator</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f7fc;
+      text-align: center;
+      padding: 20px;
+    }
+    input[type="text"] {
+      padding: 10px;
+      margin: 10px;
+      width: 300px;
+      font-size: 16px;
+    }
+    button {
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 5px;
+    }
+    #qrcode {
+      margin-top: 20px;
+    }
+    footer {
+      margin-top: 40px;
+      font-size: 14px;
+      color: #777;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>QR Code Generator</h1>
+  <p>Enter text, link, number, or payment details below:</p>
+
+  <!-- Input for QR code data -->
+  <input type="text" id="qr-input" placeholder="Enter text, link, number, etc...">
+  <br>
+  <button onclick="generateQRCode()">Generate QR Code</button>
+
+  <!-- QR code will be displayed here -->
+  <div id="qrcode"></div>
+
+  <footer>
+    <p>Powered by <a href="https://github.com/davidshimjs/qrcodejs" target="_blank">QRCode.js</a></p>
+  </footer>
+
+  <!-- QRCode.js Library -->
+  <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+  
+  <script>
+    // Function to generate QR code
+    function generateQRCode() {
+      var inputData = document.getElementById('qr-input').value;
+      
+      // Check if the input is empty
+      if (!inputData.trim()) {
+        alert('Please enter some text, link, number, or payment details.');
+        return;
+      }
+
+      // Clear any existing QR code
+      document.getElementById('qrcode').innerHTML = "";
+
+      // Generate and display the QR code
+      new QRCode(document.getElementById('qrcode'), inputData);
+    }
+  </script>
+
+</body>
+</html>
